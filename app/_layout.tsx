@@ -1,13 +1,15 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import UpdatesModalController from '@/components/Updates';
+import { Colors } from '@/constants/Colors';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { Platform, StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -15,15 +17,97 @@ export default function RootLayout() {
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
-  }
+  };
+
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
+    <ThemeProvider>
+      <GestureHandlerRootView>
+        <SafeAreaView style={{flex:1}}>
+          {/* {loading ? (
+            <SplashScreen/>
+          ) : ( */}
+            <Stack>
+              <Stack.Screen name="index" options={{headerShown:false}}/>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false, presentation:'modal' }} />
+              <Stack.Screen name="(modals)" options={{ headerShown: false, presentation:'modal' }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          {/* )} */}
+          <StatusBar  barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'}/>
+          <UpdatesModalController />
+        </SafeAreaView>
+      </GestureHandlerRootView>
     </ThemeProvider>
-  );
+  )
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//for further use
+// export default function RootLayout() {
+//   return (
+//     <ThemeProvider>
+//       <RootLayoutContent /> {/* ✅ This is now inside the provider */}
+//     </ThemeProvider>
+//   );
+// }
+
+// function RootLayoutContent() {
+//   const { colors } = useTheme(); // ✅ Now safe to use
+
+//   return (
+//     <GestureHandlerRootView>
+//       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+//         <Stack>
+//           <Stack.Screen name="index" options={{ headerShown: false }} />
+//           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+//           <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
+//           <Stack.Screen name="(modals)" options={{ headerShown: false, presentation: 'modal' }} />
+//           <Stack.Screen name="+not-found" />
+//         </Stack>
+//         <StatusBar
+//           barStyle={'default'}
+//           backgroundColor={Platform.OS === 'android' ? colors.primary : 'white'}
+//         />
+//         <UpdatesModalController />
+//       </SafeAreaView>
+//     </GestureHandlerRootView>
+//   );
+// }
