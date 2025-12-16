@@ -1,7 +1,7 @@
 import { clearCart, confirmClearCart, decrementCartItem, incrementCartItem, removeFromCart, useCartStore } from '@/components/Operations'
 import RefreshScrollView from '@/components/RefreshScrollView'
 import FloatingButton from '@/components/ui/FloatingBtn'
-import { openHelpSideBar } from '@/components/ui/help'
+import HelpCenter, { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -14,7 +14,7 @@ const Cart = () => {
   const isEmpty = items.length === 0;
   const router = useRouter();
 
-  const {colors} = useTheme();
+  const {colors, toggleTheme} = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   if (isEmpty) {
@@ -142,7 +142,13 @@ const Cart = () => {
 
         </View>
       </RefreshScrollView>
-      <FloatingButton onPress={openHelpSideBar}/>
+      {/* <HelpCenter/>
+      <FloatingButton 
+        onPress={openHelpSideBar}
+        icon='message-alert'
+        color={Colors.primary}
+        onLongPress={toggleTheme}
+      /> */}
     </View>
   )
 }

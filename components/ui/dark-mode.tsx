@@ -51,8 +51,8 @@ export default function AccountSettings() {
   return (
     <View style={[styles.container, darkThemeEnabled && styles.darkContainer]}>
       <CustomPopup visible={isPopUpOpen} onClose={closeSettingsPopUp}
-        blurType={'dark'}  
-        blurAmount={3}
+        blurType={'light'}  
+        blurAmount={5}
         heightPercent={0.7}
         widthPercent={0.8}
       >

@@ -11,7 +11,7 @@ import { StyleSheet, Text, View } from 'react-native'
 const categories = categoriesData
 
 const Categories = () => {
-  const {colors} = useTheme();
+  const {colors, toggleTheme} = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   
   return (
@@ -27,7 +27,12 @@ const Categories = () => {
           ))}
         </View>
       </RefreshScrollView>
-      <FloatingButton onPress={openHelpSideBar}/>
+      <FloatingButton 
+        onPress={openHelpSideBar}
+        icon='message-alert'
+        color={Colors.primary}
+        onLongPress={toggleTheme}
+      />
     </View>
   )
 }

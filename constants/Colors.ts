@@ -7,13 +7,14 @@ export const Colors = {
   text: 'white',
   // grayish:'#666',
   grayish:'#9ca3af',
-  gray:'#374151',
+  gray:'#0F172B',
   background:'#111827ff',
   dark:'black',
   lightgray:'#8e8f916f',
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'black',
+  card:'#8e8f916f',
 
 }
 
@@ -23,12 +24,14 @@ export const lightColors = {
   text: 'black',
   // grayish:'#666',
   grayish:'#9ca3af',
-  gray:'#374151',
-  background:'#f7f7f7ff',
+  gray:'#0F172B',
+  background:'#ffffff',
   dark:'black',
-  lightgray:'#8e8f916f',
+  lightgray:'#d5dce9ff',
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'white',
+  card:'#d1d5db',
+
 }
 

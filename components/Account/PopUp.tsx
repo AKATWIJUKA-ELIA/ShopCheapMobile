@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {Modal, Pressable, StyleSheet, Animated, Dimensions, View, Platform, Easing} from "react-native";
 import { BlurView } from "@react-native-community/blur";
 import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -19,6 +20,9 @@ export default function CustomPopup({
   const blurOpacity = useRef(new Animated.Value(0)).current;
   const popupScale = useRef(new Animated.Value(0.8)).current;
   const popupOpacity = useRef(new Animated.Value(0)).current;
+
+  const {colors, theme} = useTheme();
+  const styles = useMemo(() => appStyles(colors), [colors]);
 
   useEffect(() => {
     if (visible) {
@@ -116,7 +120,7 @@ export default function CustomPopup({
   );
 }
 
-const styles = StyleSheet.create({
+const appStyles = (colors: any) => StyleSheet.create({
   overlayFallback: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   popup: {
-    backgroundColor: Colors.gray,
+    backgroundColor: colors.gray,
     borderRadius: 20,
     padding: 20,
     shadowColor: "#000",

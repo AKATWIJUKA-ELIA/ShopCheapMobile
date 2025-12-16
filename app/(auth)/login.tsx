@@ -188,7 +188,8 @@ const appStyles = (colors: any) => StyleSheet.create({
   inline: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 18
+    marginTop: 18,
+    justifyContent: 'center'
   },
   link: {
     color: colors.primary,

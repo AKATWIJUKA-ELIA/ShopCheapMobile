@@ -5,7 +5,7 @@ import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
 import { showUpdatesModal } from '@/components/Updates';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -100,7 +100,7 @@ const Account = () => {
               <Ionicons name='person-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Profile</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openBottomSheetModal}>
@@ -108,15 +108,23 @@ const Account = () => {
               <Ionicons name='location-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Delivery Addresses</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/payments')}> 
+          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/bookmarks')}> 
             <View style={styles.itemLeft}>
-              <Ionicons name='card-outline' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Payment Methods</Text>
+              <Feather name='bookmark' size={20} color={colors.text} />
+              <Text style={styles.itemLabel}>Bookmarks</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/transactions')}> 
+            <View style={styles.itemLeft}>
+              <Feather name='credit-card' size={20} color={colors.text} />
+              <Text style={styles.itemLabel}>Transactions</Text>
+            </View>
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
         </View>
       </View>
@@ -125,20 +133,20 @@ const Account = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         <View>
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/notifications')}>
+          {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/notifications')}>
             <View style={styles.itemLeft}>
               <Ionicons name='notifications-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Notifications</Text>
             </View>
             <Ionicons name='chevron-forward' size={18} color={colors.gray} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
             <View style={styles.itemLeft}>
               <Ionicons name='settings-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Settings</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openHelpSideBar}>
@@ -146,7 +154,7 @@ const Account = () => {
               <Ionicons name='help-circle-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Help Center</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
         </View>
       </View>
@@ -281,7 +289,10 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderTopColor: colors.borderLine,
-    borderTopWidth: 1
+    borderTopWidth: 1,
+    backgroundColor:colors.card,
+    padding:12,
+    borderRadius:10,
   },
   itemLeft: {
     flexDirection: 'row',

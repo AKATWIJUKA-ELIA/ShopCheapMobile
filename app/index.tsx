@@ -38,7 +38,7 @@ export default function SplashScreen() {
       });
     }, 1000);
 
-    // Step 2: After 3s, navigate to home
+    // Step 2: After 2s, navigate to home
     const redirect = setTimeout(() => {
       router.replace("/home"); // 👈 Change to your destination
     }, 2000);

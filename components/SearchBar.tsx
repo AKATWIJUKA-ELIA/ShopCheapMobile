@@ -19,6 +19,7 @@ export default function SearchBar({ placeholder = 'Search on Shop Cheap' }: Prop
         placeholder={placeholder}
         placeholderTextColor={colors.grayish}
         style={styles.input}
+        cursorColor={colors.primary}
       />
       {/* <Ionicons name="mic-outline" size={18} color={Colors.gray} /> */}
     </View>

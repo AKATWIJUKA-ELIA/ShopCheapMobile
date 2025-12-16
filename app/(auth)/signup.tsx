@@ -102,7 +102,7 @@ export default function Signup() {
       </View>
 
       <View style={styles.inline}>
-        <Text style={{ color: colors.gray }}>Already have an account?</Text>
+        <Text style={{ color: colors.grayish }}>Already have an account?</Text>
         <Link href='/(auth)/login' style={styles.link}>Sign in</Link>
       </View >
 
@@ -201,6 +201,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginTop: 18,
+    justifyContent:'center'
   },
   link: {
     color: colors.primary,

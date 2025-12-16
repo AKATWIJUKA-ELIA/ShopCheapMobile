@@ -33,7 +33,7 @@ export default function HelpCenter() {
       <SidebarModal visible={isSideBarOpen} 
         onClose={() => closeHelpSideBar()}
         widthPercent={0.32} // control width
-        heightPercent={0.4} // control height
+        heightPercent={0.34} // control height
         top={200} // distance from top (remove if you want it auto-centered)
         side="right" // "left" or "right"
         blurType="dark"
@@ -91,7 +91,7 @@ export default function HelpCenter() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={toggleTheme}
           style={[styles.helpBtn,{
             padding: 8,
@@ -109,7 +109,7 @@ export default function HelpCenter() {
             size={25}
             color={theme === 'dark' ? colors.primary : colors.text}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         
 
       </SidebarModal>

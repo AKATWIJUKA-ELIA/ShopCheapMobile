@@ -20,7 +20,7 @@ const items = products;
 
 const Home = () => {
   const router = useRouter();
-  const {colors} = useTheme();
+  const {colors, toggleTheme} = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   return (
@@ -62,6 +62,9 @@ const Home = () => {
       </RefreshScrollView>
       <FloatingButton 
         onPress={openHelpSideBar}
+        icon='message-alert'
+        color={Colors.primary}
+        onLongPress={toggleTheme}
       />
     </View>
   )

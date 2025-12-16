@@ -1,6 +1,5 @@
 import { useCartStore } from "@/components/Operations";
 import SearchBar from "@/components/SearchBar"; // ✅ Your custom SearchBar
-import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";

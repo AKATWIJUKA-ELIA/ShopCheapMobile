@@ -62,7 +62,7 @@ export function addToCart(product: Product, qty: number = 1): void {
     cartItems.push({ product, quantity: Math.max(1, qty) })
   }
   // Alert.alert('Added to Cart', `${product.name} has been added to your cart!`)
-  ToastAndroid.showWithGravity(`${product.name} added to cart!`, ToastAndroid.SHORT, ToastAndroid.BOTTOM
+  ToastAndroid.showWithGravity(`${product.name} added to cart!`, ToastAndroid.SHORT, ToastAndroid.TOP
 );
   emitChange()
 }
@@ -71,7 +71,7 @@ export function incrementCartItem(productId: number): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems[index].quantity += 1
-    ToastAndroid.showWithGravity(`+ 1`, ToastAndroid.SHORT, ToastAndroid.BOTTOM)
+    ToastAndroid.showWithGravity(`+ 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
@@ -81,7 +81,7 @@ export function decrementCartItem(productId: number): void {
   if (index >= 0) {
     cartItems[index].quantity -= 1
     if (cartItems[index].quantity <= 0) cartItems.splice(index, 1)
-      ToastAndroid.showWithGravity(`- 1`, ToastAndroid.SHORT, ToastAndroid.BOTTOM)
+      ToastAndroid.showWithGravity(`- 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
@@ -90,7 +90,7 @@ export function removeFromCart(productId: number): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems.splice(index, 1)
-    ToastAndroid.showWithGravity(`Item removed from cart!`, ToastAndroid.SHORT, ToastAndroid.BOTTOM)
+    ToastAndroid.showWithGravity(`Item removed from cart!`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
@@ -100,7 +100,7 @@ export function clearCart(): void {
 
   // More efficient than splice
   cartItems.length = 0;
-  ToastAndroid.showWithGravity(`Cart Cleared`, ToastAndroid.SHORT, ToastAndroid.BOTTOM)
+  ToastAndroid.showWithGravity(`Cart Cleared`, ToastAndroid.SHORT, ToastAndroid.TOP)
   emitChange(); // Notify subscribers
 }
 
