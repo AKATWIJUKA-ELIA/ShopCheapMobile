@@ -1,8 +1,9 @@
 import { View, FlatList, StyleSheet, Text, TouchableOpacity, Platform } from 'react-native';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const orders = [
   {
@@ -51,6 +52,8 @@ const orders = [
 
 const OrdersScreen = () => {
   const router = useRouter();
+  const {colors, theme} = useTheme();
+  const styles = useMemo(() => appStyles(colors), [colors]);
 
   const renderOrder = ({ item }: any) => (
     <TouchableOpacity style={styles.orderCard} activeOpacity={0.5}>
@@ -90,7 +93,7 @@ const OrdersScreen = () => {
 
 export default OrdersScreen;
 
-const styles = StyleSheet.create({
+const appStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -109,7 +112,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   orderCard: {
-    backgroundColor: Colors.gray,
+    backgroundColor: colors.grayish,
     padding: 16,
     borderRadius: 12,
     shadowColor: '#000',

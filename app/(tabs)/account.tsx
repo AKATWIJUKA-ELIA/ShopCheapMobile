@@ -77,12 +77,26 @@ const Account = () => {
         <View style={{ marginLeft: 12 }}>
           <Text style={styles.name}>Hello, Jay!</Text>
           {/* <Text style={styles.subtle}>Sign in to your account</Text> */}
-          <Link href='/(auth)/login' asChild>
-            <TouchableOpacity style={styles.SignInBtn}>
-              <Text style={{color:colors.dark, fontWeight:'bold', fontSize:16, margin:5}}>Sign In</Text>
-              <FontAwesome name='sign-in' size={20} color={colors.dark} style={{marginRight:5}} />
-            </TouchableOpacity>
-          </Link>
+          <View style={{flexDirection:'row', gap:10}}>
+            <Link href='/(auth)/login' asChild>
+              <TouchableOpacity style={styles.SignInBtn}>
+                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5}}>Sign In</Text>
+                <FontAwesome name='sign-in' size={14} color={colors.light} style={{marginRight:5}} />
+              </TouchableOpacity>
+            </Link>
+{/* 
+            <Link href='/Seller/seller' asChild>
+              <TouchableOpacity style={styles.SignInBtn}>
+                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5, marginRight:5}}>Become a seller</Text>
+              </TouchableOpacity>
+            </Link> */}
+
+            <Link href='/Seller/(SellerDashboard)/' asChild>
+              <TouchableOpacity style={styles.SignInBtn}>
+                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5, marginRight:5}}>Seller Dashboard</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
 
           {/* <TouchableOpacity style={styles.SignInBtn}>
             <Text style={{color:colors.dark, fontWeight:'bold'}}>Sign Out</Text>

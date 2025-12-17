@@ -10,12 +10,11 @@ export const Colors = {
   gray:'#0F172B',
   background:'#111827ff',
   dark:'black',
-  lightgray:'#8e8f916f',
+  lightgray:'#6B7280',
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'black',
   card:'#8e8f916f',
-
 }
 
 export const lightColors = {
@@ -27,11 +26,10 @@ export const lightColors = {
   gray:'#0F172B',
   background:'#ffffff',
   dark:'black',
-  lightgray:'#d5dce9ff',
+  lightgray:'#6B7280',
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'white',
   card:'#d1d5db',
-
 }
 

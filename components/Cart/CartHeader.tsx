@@ -312,7 +312,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
   orderCard: {
-    backgroundColor: colors.graybackground,
+    backgroundColor: colors.lightgray,
     padding: 16,
     borderRadius: 12,
     shadowColor: '#000',

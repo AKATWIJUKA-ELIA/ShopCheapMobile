@@ -71,7 +71,7 @@ export function incrementCartItem(productId: number): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems[index].quantity += 1
-    ToastAndroid.showWithGravity(`+ 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
+    // ToastAndroid.showWithGravity(`+ 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
@@ -81,7 +81,7 @@ export function decrementCartItem(productId: number): void {
   if (index >= 0) {
     cartItems[index].quantity -= 1
     if (cartItems[index].quantity <= 0) cartItems.splice(index, 1)
-      ToastAndroid.showWithGravity(`- 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
+      // ToastAndroid.showWithGravity(`- 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
