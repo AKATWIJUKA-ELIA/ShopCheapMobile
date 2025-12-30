@@ -60,8 +60,13 @@ export default function SellerLanding() {
         </Text>
 
         <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/register')}>
-          <Ionicons name="add-circle-outline" size={20} color="#fff" />
+          <Ionicons name="add-circle-outline" size={20} color={colors.light} />
           <Text style={styles.primaryBtnText}>Start Selling Today</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/(SellerDashboard)')}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.light} />
+          <Text style={styles.primaryBtnText}>Seller</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.secondaryBtn} onPress={GoToLearnMore}>

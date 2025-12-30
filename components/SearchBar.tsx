@@ -1,15 +1,17 @@
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import React, { useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 type Props = {
   placeholder?: string
+  value?: string
+  onChangeText?: (text: string) => void
 }
 
-export default function SearchBar({ placeholder = 'Search on Shop Cheap' }: Props) {
-  const {colors} = useTheme();
+export default function SearchBar({ placeholder = 'Search on Shop Cheap', value, onChangeText }: Props) {
+  const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   return (
@@ -20,8 +22,12 @@ export default function SearchBar({ placeholder = 'Search on Shop Cheap' }: Prop
         placeholderTextColor={colors.grayish}
         style={styles.input}
         cursorColor={colors.primary}
+        value={value}
+        onChangeText={onChangeText}
       />
-      {/* <Ionicons name="mic-outline" size={18} color={Colors.gray} /> */}
+      {value ? (
+        <MaterialIcons name="cancel" size={18} color={Colors.grayish} onPress={() => onChangeText?.('')} />
+      ) : null}
     </View>
   )
 }

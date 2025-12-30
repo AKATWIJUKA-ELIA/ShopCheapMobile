@@ -111,7 +111,7 @@ export default function UpdatesModalController() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: Colors.gray }]}
+                style={[styles.button, { backgroundColor: Colors.grayish }]}
                 onPress={handleLater}
               >
                 <Text style={styles.buttonText}>Later</Text>
@@ -146,9 +146,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   subtitle: {
-    color: Colors.gray,
+    color: Colors.grayish,
     marginTop: 8,
     textAlign: 'center',
+    fontSize:12
   },
   button: {
     flex: 1,

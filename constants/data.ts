@@ -3,6 +3,7 @@ import { openHelpSideBar } from "@/components/ui/help"
 export const categories = [
   { title: 'Gadgets', image: {uri:'https://www.on-magazine.co.uk/wp-content/uploads/Tech-and-Gadgets-2025.jpg'} },
   { title: 'Computers', image: {uri:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpYMUQtUaGUFa-oP7lFNrwVHURWP0FRpYj2Q&s'} },
+  { title: 'Accessories', image: {uri:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSpYMUQtUaGUFa-oP7lFNrwVHURWP0FRpYj2Q&s'} },
   { title: 'Office & Education', image: {uri:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZm_hFXOus0Jh8xt1eaAaMUo54FLuooVa_nA&s'} },
   { title: 'Health & Beauty', image: {uri:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRuPCBnk8XsuElFEfu0sEqJg_OXAtD7rlaNsVvhgwRlf_zOzL-8NeAWVGVIlXvUGWrpp4&usqp=CAU'} },
   { title: 'Phones', image: {uri:'https://cdn.mos.cms.futurecdn.net/M4nigVN3vvA5EEnNX9atxY.jpg'}},

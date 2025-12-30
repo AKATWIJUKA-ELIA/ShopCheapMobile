@@ -1,14 +1,9 @@
+import { Product } from '@/types/product';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, ToastAndroid } from 'react-native';
 
-// Shared domain types
-export interface Product {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  description: string;
-}
+// Re-export Product type for convenience
+export type { Product } from '@/types/product';
 
 export interface CartItem {
   product: Product;
@@ -17,7 +12,7 @@ export interface CartItem {
 
 // In-memory stores (simple and lightweight)
 const cartItems: CartItem[] = []
-const wishlistIds = new Set<number>()
+const wishlistIds = new Set<string>()
 
 // Simple pub/sub for reactive UI
 type Listener = () => void
@@ -32,7 +27,7 @@ function recomputeSnapshot() {
   currentSnapshot = {
     items: cartItems,
     count: cartItems.reduce((sum, ci) => sum + ci.quantity, 0),
-    total: cartItems.reduce((sum, ci) => sum + ci.product.price * ci.quantity, 0),
+    total: cartItems.reduce((sum, ci) => sum + parseFloat(ci.product.product_price) * ci.quantity, 0),
   }
 }
 
@@ -49,44 +44,41 @@ export function subscribe(listener: Listener): () => void {
 }
 
 // Helpers
-function findCartIndexByProductId(productId: number): number {
-  return cartItems.findIndex(ci => ci.product.id === productId)
+function findCartIndexByProductId(productId: string): number {
+  return cartItems.findIndex(ci => ci.product._id === productId)
 }
 
 // Cart operations
 export function addToCart(product: Product, qty: number = 1): void {
-  const index = findCartIndexByProductId(product.id)
+  const index = findCartIndexByProductId(product._id)
   if (index >= 0) {
     cartItems[index].quantity += qty
   } else {
     cartItems.push({ product, quantity: Math.max(1, qty) })
   }
-  // Alert.alert('Added to Cart', `${product.name} has been added to your cart!`)
-  ToastAndroid.showWithGravity(`${product.name} added to cart!`, ToastAndroid.SHORT, ToastAndroid.TOP
-);
+  ToastAndroid.showWithGravity(`${product.product_name} added to cart!`, ToastAndroid.SHORT, ToastAndroid.TOP
+  );
   emitChange()
 }
 
-export function incrementCartItem(productId: number): void {
+export function incrementCartItem(productId: string): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems[index].quantity += 1
-    // ToastAndroid.showWithGravity(`+ 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
 
-export function decrementCartItem(productId: number): void {
+export function decrementCartItem(productId: string): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems[index].quantity -= 1
     if (cartItems[index].quantity <= 0) cartItems.splice(index, 1)
-      // ToastAndroid.showWithGravity(`- 1`, ToastAndroid.SHORT, ToastAndroid.TOP)
     emitChange()
   }
 }
 
-export function removeFromCart(productId: number): void {
+export function removeFromCart(productId: string): void {
   const index = findCartIndexByProductId(productId)
   if (index >= 0) {
     cartItems.splice(index, 1)
@@ -96,28 +88,27 @@ export function removeFromCart(productId: number): void {
 }
 
 export function clearCart(): void {
-  if (cartItems.length === 0) return; // Avoid unnecessary emits
+  if (cartItems.length === 0) return;
 
-  // More efficient than splice
   cartItems.length = 0;
   ToastAndroid.showWithGravity(`Cart Cleared`, ToastAndroid.SHORT, ToastAndroid.TOP)
-  emitChange(); // Notify subscribers
+  emitChange();
 }
 
-export function confirmClearCart(){
-    Alert.alert(
-      "Clear Cart?",
-      "Are you sure you want to remove all items from your cart?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Yes Clear ",
-          style: "destructive", // makes it red on iOS
-          onPress: () => clearCart()
-        }
-      ]
-    );
-  };
+export function confirmClearCart() {
+  Alert.alert(
+    "Clear Cart?",
+    "Are you sure you want to remove all items from your cart?",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Yes Clear ",
+        style: "destructive",
+        onPress: () => clearCart()
+      }
+    ]
+  );
+};
 
 
 
@@ -130,44 +121,44 @@ export function getCartCount(): number {
 }
 
 export function getCartTotal(): number {
-  return cartItems.reduce((sum, ci) => sum + ci.product.price * ci.quantity, 0)
+  return cartItems.reduce((sum, ci) => sum + parseFloat(ci.product.product_price) * ci.quantity, 0)
 }
 
-export function getCartQuantity(productId: number): number {
+export function getCartQuantity(productId: string): number {
   const index = findCartIndexByProductId(productId)
   return index >= 0 ? cartItems[index].quantity : 0
 }
 
 // Wishlist operations
 export function addToWishlist(product: Product): void {
-  if (!wishlistIds.has(product.id)) {
-    wishlistIds.add(product.id)
-    Alert.alert('Added to Wishlist', `${product.name} has been added to your wishlist!`)
+  if (!wishlistIds.has(product._id)) {
+    wishlistIds.add(product._id)
+    Alert.alert('Added to Wishlist', `${product.product_name} has been added to your wishlist!`)
     emitChange()
   }
 }
 
-export function removeFromWishlist(productId: number): void {
+export function removeFromWishlist(productId: string): void {
   wishlistIds.delete(productId)
   emitChange()
 }
 
 export function toggleWishlist(product: Product): void {
-  if (wishlistIds.has(product.id)) {
-    wishlistIds.delete(product.id)
-    Alert.alert('Removed from Wishlist', `${product.name} has been removed from your wishlist!`)
+  if (wishlistIds.has(product._id)) {
+    wishlistIds.delete(product._id)
+    Alert.alert('Removed from Wishlist', `${product.product_name} has been removed from your wishlist!`)
   } else {
-    wishlistIds.add(product.id)
-    Alert.alert('Added to Wishlist', `${product.name} has been added to your wishlist!`)
+    wishlistIds.add(product._id)
+    Alert.alert('Added to Wishlist', `${product.product_name} has been added to your wishlist!`)
   }
   emitChange()
 }
 
-export function isInWishlist(productId: number): boolean {
+export function isInWishlist(productId: string): boolean {
   return wishlistIds.has(productId)
 }
 
-export function getWishlistIds(): number[] {
+export function getWishlistIds(): string[] {
   return Array.from(wishlistIds)
 }
 
@@ -204,8 +195,8 @@ export function useWishlistStore() {
 }
 
 // Persistence
-const CART_KEY = 'shopcheap_cart_v1'
-const WISHLIST_KEY = 'shopcheap_wishlist_v1'
+const CART_KEY = 'shopcheap_cart_v2'
+const WISHLIST_KEY = 'shopcheap_wishlist_v2'
 
 async function persistState() {
   try {
@@ -232,7 +223,7 @@ async function hydrateState() {
       cartItems.splice(0, cartItems.length, ...parsed)
     }
     if (wishlistRaw) {
-      const parsedIds: number[] = JSON.parse(wishlistRaw)
+      const parsedIds: string[] = JSON.parse(wishlistRaw)
       wishlistIds.clear()
       parsedIds.forEach(id => wishlistIds.add(id))
     }
@@ -247,7 +238,5 @@ async function hydrateState() {
 void hydrateState()
 
 export function useHydrationReady(): boolean {
-  // expose whether we've run hydrate at least once; we can infer readiness by non-null snapshot ref
-  // since currentSnapshot always exists, just return true after first subscribe tick
   return true
 }

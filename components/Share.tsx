@@ -1,6 +1,6 @@
-import { Share, Alert } from "react-native";
+import { Alert, Share } from "react-native";
 
-export async function triggerShare(p0: string, p1: string, { message, url }: { message?: string; url?: string; }) {
+export async function triggerShare(message?: string, url?: string) {
   try {
     const result = await Share.share({
       message: message ?? "Check out this product at ShopCheap!",
@@ -16,7 +16,7 @@ export async function triggerShare(p0: string, p1: string, { message, url }: { m
     } else if (result.action === Share.dismissedAction) {
       console.log("Share dismissed by user.");
     }
-  } catch (error) {
+  } catch (error: any) {
     Alert.alert("Error", error.message);
   }
 }

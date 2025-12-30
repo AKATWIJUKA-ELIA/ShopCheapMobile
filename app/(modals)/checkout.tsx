@@ -1,7 +1,7 @@
 import AddressScreen from '@/components/Account/DeliveryAddress';
 import { clearCart, useCartStore } from '@/components/Operations';
-import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatPrice } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { useRouter } from 'expo-router';
@@ -16,16 +16,16 @@ const CheckoutScreen = () => {
   const [step, setStep] = useState(0); // 0: Address, 1: Payment, 2: Review, 3: Confirm
 
 
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   // Demo local state (replace with real stores)
   const [selectedAddress, setSelectedAddress] = useState({ label: 'Home', details: '12 Kintu Rd, Kampala' });
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'mobile'>('card');
   const [card, setCard] = useState({ number: '', expiry: '', cvv: '' });
-  
 
-    // PIN state
+
+  // PIN state
   const [pinVisible, setPinVisible] = useState(false);
   const [pin, setPin] = useState('');
 
@@ -45,26 +45,26 @@ const CheckoutScreen = () => {
     setStep((s) => Math.max(0, s - 1));
   };
 
-//   const confirmOrder = () => {
-//     clearCart();
-//     setStep(3);
-//     setTimeout(() => {
-//       Alert.alert('Order Confirmed', 'Thank you! Your order has been placed.');
-//       router.replace('/(tabs)/home');
-//     }, 500);
-//   };
+  //   const confirmOrder = () => {
+  //     clearCart();
+  //     setStep(3);
+  //     setTimeout(() => {
+  //       Alert.alert('Order Confirmed', 'Thank you! Your order has been placed.');
+  //       router.replace('/(tabs)/home');
+  //     }, 500);
+  //   };
 
-const confirmOrder = () => {
-  // Only show PIN if payment method requires it
-  if (paymentMethod === 'card' || paymentMethod === 'mobile') {
-    setPinVisible(true); // show the PIN modal
-  } else {
-    finalizeOrder(); // COD can skip PIN
-  }
-};
+  const confirmOrder = () => {
+    // Only show PIN if payment method requires it
+    if (paymentMethod === 'card' || paymentMethod === 'mobile') {
+      setPinVisible(true); // show the PIN modal
+    } else {
+      finalizeOrder(); // COD can skip PIN
+    }
+  };
 
 
-    const finalizeOrder = () => {
+  const finalizeOrder = () => {
     clearCart();
     setStep(3); // move to "Order Confirmed"
     setTimeout(() => {
@@ -76,46 +76,46 @@ const confirmOrder = () => {
 
 
 
-//for the bottomsheet modal
-    const translateY = useState(new Animated.Value(height))[0];
-    const [visible, setVisible] = useState(false);
-    const [slideAnim] = useState(new Animated.Value(height));
+  //for the bottomsheet modal
+  const translateY = useState(new Animated.Value(height))[0];
+  const [visible, setVisible] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(height));
 
-    const openBottomSheetModal = () => {
-        setVisible(true);
-        Animated.timing(translateY, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
+  const openBottomSheetModal = () => {
+    setVisible(true);
+    Animated.timing(translateY, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeBottomSheetModal = () => {
+    Animated.timing(translateY, {
+      toValue: height,
+      duration: 500,
+      useNativeDriver: true,
+    }).start(() => setVisible(false));
+  };
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: translateY } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = ({ nativeEvent }: any) => {
+    if (nativeEvent.state === 5) {
+      // 5 = GestureHandlerState.END
+      if (nativeEvent.translationY > 150) {
+        closeBottomSheetModal();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
         }).start();
-    };
-
-    const closeBottomSheetModal = () => {
-        Animated.timing(translateY, {
-        toValue: height,
-        duration: 500,
-        useNativeDriver: true,
-        }).start(() => setVisible(false));
-    };
-
-        const onGestureEvent = Animated.event(
-        [{ nativeEvent: { translationY: translateY } }],
-        { useNativeDriver: true }
-        );
-
-        const onHandlerStateChange = ({ nativeEvent }: any) => {
-            if (nativeEvent.state === 5) {
-            // 5 = GestureHandlerState.END
-            if (nativeEvent.translationY > 150) {
-                closeBottomSheetModal();
-            } else {
-                Animated.spring(translateY, {
-                toValue: 0,
-                useNativeDriver: true,
-                }).start();
-            }
-            }
-        };
+      }
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -149,16 +149,16 @@ const confirmOrder = () => {
         {/* Step Content */}
         {step === 0 && (
           <View style={{ marginTop: 16 }}>
-            <Text style={[styles.sectionTitle, {textAlign:'center', marginBottom:10}]}>Delivery Address</Text>
+            <Text style={[styles.sectionTitle, { textAlign: 'center', marginBottom: 10 }]}>Delivery Address</Text>
             <View style={styles.addressCard}>
               <Text style={styles.addressLabel}>{selectedAddress.label}</Text>
               <Text style={styles.addressDetails}>{selectedAddress.details}</Text>
             </View>
             <TouchableOpacity onPress={openBottomSheetModal}>
-                <Text style={{color:colors.primary, margin:5}}>Change Address</Text>
+              <Text style={{ color: colors.primary, margin: 5 }}>Change Address</Text>
             </TouchableOpacity>
-            
-           
+
+
           </View>
         )}
 
@@ -178,37 +178,37 @@ const confirmOrder = () => {
             </View>
             {paymentMethod === 'card' && (
               <View style={{ marginTop: 12 }}>
-                <Text style={{color:colors.text}}>Card number</Text>
-                <TextInput 
-                  placeholder="Card Number" 
-                  placeholderTextColor={colors.grayish} 
-                  style={styles.input} 
-                  value={card.number} 
-                  onChangeText={(t) => setCard({ ...card, number: t })} 
+                <Text style={{ color: colors.text }}>Card number</Text>
+                <TextInput
+                  placeholder="Card Number"
+                  placeholderTextColor={colors.grayish}
+                  style={styles.input}
+                  value={card.number}
+                  onChangeText={(t) => setCard({ ...card, number: t })}
                   keyboardType="numeric"
                   maxLength={16}
                 />
                 <View style={{ flexDirection: 'row', gap: 8, }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{color:colors.text}}>Expires End</Text>
-                    <TextInput 
-                      placeholder="MM/YY" 
-                      placeholderTextColor={colors.grayish} 
-                      style={[styles.input, { flex: 1 }]} 
-                      value={card.expiry} 
-                      onChangeText={(t)=>setCard({...card, expiry: t})}
+                    <Text style={{ color: colors.text }}>Expires End</Text>
+                    <TextInput
+                      placeholder="MM/YY"
+                      placeholderTextColor={colors.grayish}
+                      style={[styles.input, { flex: 1 }]}
+                      value={card.expiry}
+                      onChangeText={(t) => setCard({ ...card, expiry: t })}
                       maxLength={4}
                       keyboardType='numeric'
                     />
                   </View>
 
-                  <View style={{flex:1}}>
-                    <Text style={{color:colors.text}}>CVC</Text>
-                    <TextInput 
-                      placeholder="CVC" 
-                      placeholderTextColor={colors.grayish} 
-                      style={[styles.input, { flex: 1 }]} 
-                      value={card.cvv} onChangeText={(t)=>setCard({...card, cvv: t})} 
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text }}>CVC</Text>
+                    <TextInput
+                      placeholder="CVC"
+                      placeholderTextColor={colors.grayish}
+                      style={[styles.input, { flex: 1 }]}
+                      value={card.cvv} onChangeText={(t) => setCard({ ...card, cvv: t })}
                       secureTextEntry keyboardType="numeric"
                       maxLength={3}
                     />
@@ -223,12 +223,12 @@ const confirmOrder = () => {
           <View style={{ marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Review Order</Text>
             {cart.items.map((ci: any) => (
-              <View key={ci.product.id} style={styles.reviewRow}>
-                <Text style={{ color: colors.text }}>{ci.product.name} x {ci.quantity}</Text>
-                <Text style={{ color: colors.text }}>${(ci.product.price * ci.quantity).toFixed(2)}</Text>
+              <View key={ci.product._id} style={styles.reviewRow}>
+                <Text style={{ color: colors.text }}>{ci.product.product_name} x {ci.quantity}</Text>
+                <Text style={{ color: colors.text }}>{formatPrice(parseFloat(ci.product.product_price) * ci.quantity)}</Text>
               </View>
             ))}
-            <Text style={[styles.totalValue, { marginTop: 12 }]}>Total: ${cart.total.toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { marginTop: 12 }]}>Total: {formatPrice(cart.total)}</Text>
           </View>
         )}
 
@@ -256,99 +256,99 @@ const confirmOrder = () => {
             )}
           </View>
         )}
-        
+
       </ScrollView>
 
-       {/* PIN Modal */}
-        {pinVisible && (
+      {/* PIN Modal */}
+      {pinVisible && (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
             justifyContent: 'center',
             alignItems: 'center',
-            }}
+          }}
         >
-            {/* Blur background */}
-            <BlurView
-                blurAmount={10}
-                blurType='dark'
-                style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                }}
-            />
-
-            {/* Modal Card */}
-            <Animated.View
+          {/* Blur background */}
+          <BlurView
+            blurAmount={10}
+            blurType='dark'
             style={{
-                width: '80%',
-                backgroundColor: colors.graybackground,
-                padding: 24,
-                borderRadius: 16,
-                elevation: 10,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                alignItems: 'center',
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
             }}
-            >
+          />
+
+          {/* Modal Card */}
+          <Animated.View
+            style={{
+              width: '80%',
+              backgroundColor: colors.graybackground,
+              padding: 24,
+              borderRadius: 16,
+              elevation: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              alignItems: 'center',
+            }}
+          >
             <Text style={{ color: 'white', fontWeight: '700', fontSize: 18, marginBottom: 16 }}>
-                Enter PIN
+              Enter PIN
             </Text>
 
             <TextInput
-                value={pin}
-                onChangeText={setPin}
-                keyboardType="numeric"
-                secureTextEntry
-                placeholder="••••"
-                placeholderTextColor={colors.grayish}
-                maxLength={4}
-                autoFocus
-                caretHidden
-                keyboardAppearance='dark'
-                style={{
-                  backgroundColor: colors.gray,
-                  color: 'white',
-                  fontSize: 22,
-                  padding: 14,
-                  borderRadius: 99,
-                  width: '60%',
-                  textAlign: 'center',
-                  letterSpacing: 14,
-                  marginBottom: 20,
-                }}
+              value={pin}
+              onChangeText={setPin}
+              keyboardType="numeric"
+              secureTextEntry
+              placeholder="••••"
+              placeholderTextColor={colors.grayish}
+              maxLength={4}
+              autoFocus
+              caretHidden
+              keyboardAppearance='dark'
+              style={{
+                backgroundColor: colors.gray,
+                color: 'white',
+                fontSize: 22,
+                padding: 14,
+                borderRadius: 99,
+                width: '60%',
+                textAlign: 'center',
+                letterSpacing: 14,
+                marginBottom: 20,
+              }}
             />
 
             {/* Buttons */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                <TouchableOpacity onPress={() => setPinVisible(false)} style={{ padding: 12 }}>
+              <TouchableOpacity onPress={() => setPinVisible(false)} style={{ padding: 12 }}>
                 <Text style={{ color: 'red', fontWeight: '700' }}>Cancel</Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => {
+              <TouchableOpacity onPress={() => {
                 if (pin.length < 4) {
-                    Alert.alert('Invalid PIN', 'PIN must be 4 digits');
-                    return;
+                  Alert.alert('Invalid PIN', 'PIN must be 4 digits');
+                  return;
                 }
                 setPinVisible(false);
                 finalizeOrder();
-                }} style={{ padding: 12 }}>
+              }} style={{ padding: 12 }}>
                 <Text style={{ color: colors.primary, fontWeight: '700' }}>Confirm</Text>
-                </TouchableOpacity>
+              </TouchableOpacity>
             </View>
-            </Animated.View>
+          </Animated.View>
         </KeyboardAvoidingView>
-        )}
+      )}
 
 
       {/* Bottom Sheet for Address Selection */}
-        {visible && (
+      {visible && (
         <Animated.View
-            style={{
+          style={{
             position: "absolute",
             bottom: 0,
             left: 0,
@@ -363,17 +363,17 @@ const confirmOrder = () => {
             shadowOpacity: 0.3,
             shadowRadius: 6,
             shadowOffset: { width: 0, height: -2 },
-            }}
+          }}
         >
-            {/* Close button */}
-            <TouchableOpacity onPress={closeBottomSheetModal} style={{ alignSelf: "flex-end", padding: 10, zIndex: 1,}}>
-                <Ionicons name="close" size={24} color={colors.primary} />
-            </TouchableOpacity>
+          {/* Close button */}
+          <TouchableOpacity onPress={closeBottomSheetModal} style={{ alignSelf: "flex-end", padding: 10, zIndex: 1, }}>
+            <Ionicons name="close" size={24} color={colors.primary} />
+          </TouchableOpacity>
 
-            {/* Your AddressScreen Component */}
-            <AddressScreen />
+          {/* Your AddressScreen Component */}
+          <AddressScreen />
         </Animated.View>
-        )}
+      )}
 
     </KeyboardAvoidingView>
   );
@@ -382,109 +382,109 @@ const confirmOrder = () => {
 export default CheckoutScreen;
 
 const appStyles = (colors: any) => StyleSheet.create({
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
-},
-  backText: { 
-    color: colors.primary, 
-    fontWeight: '700'  
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
-  cancelText: { 
-    color: 'red', 
-    fontWeight: '700' 
-},
-  headerTitle: { 
-    color: colors.text, 
-    fontSize: 20, 
-    fontWeight: '700' 
+  backText: {
+    color: colors.primary,
+    fontWeight: '700'
   },
-  stepIndicatorRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginTop: 16 
+  cancelText: {
+    color: 'red',
+    fontWeight: '700'
+  },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '700'
+  },
+  stepIndicatorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16
   },
   stepItem: {
     alignItems: 'center',
     flex: 1
   },
-  stepDot: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 6, 
-    backgroundColor: '#333', 
-    marginBottom: 6 
+  stepDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: '#333',
+    marginBottom: 6
   },
-  stepDotActive: { 
-    backgroundColor: colors.primary 
+  stepDotActive: {
+    backgroundColor: colors.primary
   },
-  stepLabel: { 
-    color: colors.text, 
-    fontSize: 12 
+  stepLabel: {
+    color: colors.text,
+    fontSize: 12
   },
-  stepLabelActive: { 
-    color: colors.primary, 
+  stepLabelActive: {
+    color: colors.primary,
     fontWeight: '700',
   },
-  sectionTitle: { 
-    color: colors.text, 
-    fontWeight: '700', 
-    fontSize: 16, 
-    marginBottom: 8, 
+  sectionTitle: {
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 16,
+    marginBottom: 8,
     marginTop: 16
   },
-  addressCard: { 
-    backgroundColor: '#111', 
-    padding: 12, 
-    borderRadius: 10 
+  addressCard: {
+    backgroundColor: '#111',
+    padding: 12,
+    borderRadius: 10
   },
-  addressLabel: { 
-    color: colors.light, 
-    fontWeight: '700' 
-  },
-  addressDetails: { 
-    color: colors.gray, 
-    marginTop: 4 
-  },
-  input: { 
-    backgroundColor: '#111', 
-    borderRadius: 10, 
-    padding: 12, color: 
-    colors.light, 
-    borderWidth: 1, 
-    borderColor: '#222',
-    marginBottom: 10 
-},
-  payOption: { 
-    padding: 12, 
-    borderRadius: 10, 
-    backgroundColor: '#111', 
-    marginRight: 8, 
-    marginBottom: 8 
-},
-  payOptionSelected: { 
-    borderColor: colors.primary, 
-    borderWidth: 1.2, 
-    backgroundColor: '#0f0f0f' 
-},
-  reviewRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 6 
-  },
-  totalValue: { 
-    color: colors.primary, 
-    fontWeight: '700', 
-    fontSize: 16 
-  },
-  actionBtn: { 
-    flex: 1, padding: 12, 
-    borderRadius: 12, 
-    alignItems: 'center' 
-  },
-  actionBtnText: { 
+  addressLabel: {
     color: colors.light,
-    fontWeight: '700' 
+    fontWeight: '700'
+  },
+  addressDetails: {
+    color: colors.gray,
+    marginTop: 4
+  },
+  input: {
+    backgroundColor: '#111',
+    borderRadius: 10,
+    padding: 12, color:
+      colors.light,
+    borderWidth: 1,
+    borderColor: '#222',
+    marginBottom: 10
+  },
+  payOption: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#111',
+    marginRight: 8,
+    marginBottom: 8
+  },
+  payOptionSelected: {
+    borderColor: colors.primary,
+    borderWidth: 1.2,
+    backgroundColor: '#0f0f0f'
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6
+  },
+  totalValue: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 16
+  },
+  actionBtn: {
+    flex: 1, padding: 12,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+  actionBtnText: {
+    color: colors.light,
+    fontWeight: '700'
   },
 });

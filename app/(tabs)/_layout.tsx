@@ -3,7 +3,7 @@ import HomeHeader from '@/components/Header';
 import { useCartStore } from '@/components/Operations';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
+import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Text, View } from 'react-native';
@@ -20,13 +20,14 @@ export default function TabLayout() {
       tabBarInactiveTintColor: colors.grayish,
       tabBarStyle: { backgroundColor: colors.background, paddingTop:5, height:60 },
       headerShown:false,
+      tabBarLabelStyle:{fontSize:11, fontWeight:'700'},
     }}>
       <Tabs.Screen name='home' options={{
         title:'Home', 
         headerShown:true,
         header: () => <HomeHeader />,
         tabBarLabelStyle:{fontSize:12},
-        tabBarIcon:({ color }) => <Ionicons name='home' size={25} color={color}/>,
+        tabBarIcon:({ color, size }) => <Ionicons name='home' size={size} color={color}/>,
         // headerLeft:() => (
         //   <Image source={{uri:'https://shopcheap.vercel.app/_next/image?url=%2Fimages%2Flogo2.png&w=1080&q=75'}}
         //   style={{ 
@@ -52,7 +53,7 @@ export default function TabLayout() {
         title:'Categories',
         headerShown:true,
         header: () => <HomeHeader />,
-        tabBarIcon:({ color }) => <Ionicons name='grid' size={25} color={color}/>
+        tabBarIcon:({ color, size }) => <Ionicons name='grid' size={size} color={color}/>
       }}/>
 
       <Tabs.Screen name='cart' options={{
@@ -60,9 +61,9 @@ export default function TabLayout() {
         headerShown:true,
         header: () => <CartHeader/>,
         tabBarBadge: undefined,
-        tabBarIcon:({ color }) => (
+        tabBarIcon:({ color, size }) => (
           <View>
-            <Ionicons name='cart' size={25} color={color}/>
+            <Ionicons name='cart' size={size} color={color}/>
             {distinctCount > 0 ? (
               <View style={{position:'absolute', right:-8, top:-4, backgroundColor:colors.primary, borderRadius:10, paddingHorizontal:6, paddingVertical:1}}>
                 <Text style={{color:'#000', fontSize:10, fontWeight:'800'}}>{distinctCount > 99 ? '99+' : distinctCount}</Text>
@@ -87,14 +88,14 @@ export default function TabLayout() {
         // ),
       }}/>
 
-      {/* <Tabs.Screen name='wishlist' options={{
-        title:'Wishlist',
-        tabBarIcon:({ color }) => <Ionicons name='heart' size={25} color={color}/>
-      }}/> */}
+      <Tabs.Screen name='shops' options={{
+        title:'Shops',
+        tabBarIcon:({ color, size }) => <Entypo name='shop' size={size} color={color}/>
+      }}/>
 
       <Tabs.Screen name='account' options={{
         title:'Account',
-        tabBarIcon:({ color }) => <Ionicons name='person' size={25} color={color}/>
+        tabBarIcon:({ color, size }) => <Ionicons name='person' size={size} color={color}/>
       }}/>
     </Tabs>
   );

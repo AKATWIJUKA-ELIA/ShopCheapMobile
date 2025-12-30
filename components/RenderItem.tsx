@@ -1,18 +1,10 @@
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import { formatPrice, Product } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AddToCart, decrementCartItem, getCartQuantity, incrementCartItem, useCartStore } from './Operations';
-import { useTheme } from '@/contexts/ThemeContext';
-
-interface Product {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  description: string;
-}
 
 interface RenderItemProps {
   item: Product;
@@ -20,33 +12,30 @@ interface RenderItemProps {
 }
 
 const RenderItem = ({ item: product }: RenderItemProps) => {
-    const router = useRouter();
-    const { items } = useCartStore()
-    const qty = getCartQuantity(product.id);
-    const {colors} = useTheme();
-    const styles = useMemo(() => appStyles(colors), [colors]);
+  const router = useRouter();
+  const { items } = useCartStore()
+  const qty = getCartQuantity(product._id);
+  const { colors } = useTheme();
+  const styles = useMemo(() => appStyles(colors), [colors]);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={() => router.push({ pathname: '/(modals)/product', params: { id: product.id } })} activeOpacity={0.8}>
-      <Image 
-        source={{ uri: product.image }} 
+    <TouchableOpacity style={styles.container} onPress={() => router.push({ pathname: '/(modals)/product', params: { id: product._id } })} activeOpacity={0.8}>
+      <Image
+        source={{ uri: product.product_image }}
         style={styles.image}
         resizeMode="cover"
       />
       <View style={styles.productInfo}>
-        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-        <Text style={styles.price}>${product.price}</Text>
-        {/* <Text style={styles.description} numberOfLines={2}>
-          {product.description}
-        </Text> */}
+        <Text style={styles.name} numberOfLines={2}>{product.product_name}</Text>
+        <Text style={styles.price}>{formatPrice(product.product_price)}</Text>
         <View style={styles.buttonContainer}>
           {qty > 0 ? (
-            <View style={{flexDirection:'row', alignItems:'center', gap:8, flex:1}}>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(product.id)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(product._id)}>
                 <Text style={styles.qtyBtnText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.qtyText}>{qty}</Text>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(product.id)}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(product._id)}>
                 <Text style={styles.qtyBtnText}>+</Text>
               </TouchableOpacity>
             </View>
@@ -66,10 +55,10 @@ const appStyles = (colors: any) => StyleSheet.create({
   container: {
     borderColor: colors.lightgray,
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 16,
     height: 240,
     width: '48%',
-    marginBottom: 20,
+    marginBottom: 12,
     backgroundColor: colors.background,
     padding: 7,
     shadowColor: '#000',
@@ -99,9 +88,9 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   price: {
     color: colors.primary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   description: {
     color: colors.gray,

@@ -15,6 +15,10 @@ const ScreensLayout = () => {
                 
             }}
         />
+        <Stack.Screen name='[id]' options={{
+                
+            }}
+        />
     </Stack>
   )
 }

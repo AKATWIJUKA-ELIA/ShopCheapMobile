@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useRouter } from 'expo-router'
 import React, { useMemo } from 'react'
@@ -6,13 +5,13 @@ import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 type Props = {
   title: string
-  image: number
+  image: any
 }
 
 export default function CategoryTile({ title, image }: Props) {
   const { width, height } = Dimensions.get('window');
   const router = useRouter();
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   return (
@@ -28,7 +27,7 @@ export default function CategoryTile({ title, image }: Props) {
 const appStyles = (colors: any) => StyleSheet.create({
   container: {
     width: 90,
-    height:'auto',
+    height: 'auto',
     padding: 8,
   },
   imageWrap: {

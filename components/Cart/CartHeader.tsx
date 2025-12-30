@@ -7,6 +7,7 @@ import { PanGestureHandler } from "react-native-gesture-handler";
 import { useCartStore } from "../Operations";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BlurView } from "@react-native-community/blur";
+import { formatPrice } from "@/types/product";
 
 
 
@@ -126,7 +127,7 @@ const CartHeader = ({ title = "My Cart" }) => {
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>${total.toFixed(2)}</Text>
+      <Text style={styles.title}>{formatPrice(total)}</Text>
 
       <TouchableOpacity style={styles.iconButton} onPress={openModal}>
         <MaterialCommunityIcons name="order-bool-descending" size={24} color={colors.primary} />
@@ -312,7 +313,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
   orderCard: {
-    backgroundColor: colors.lightgray,
+    backgroundColor: colors.card,
     padding: 16,
     borderRadius: 12,
     shadowColor: '#000',
@@ -329,7 +330,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   orderId: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.dark,
   },
   orderStatus: {
     fontSize: 14,
@@ -337,13 +338,13 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
   orderDate: {
-    fontSize: 14,
-    color: colors.grayish,
+    fontSize: 12,
+    color: colors.gray,
     marginBottom: 4,
   },
   orderTotal: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.grayish,
+    color: colors.gray,
   }, 
 });

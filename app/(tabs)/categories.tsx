@@ -8,26 +8,29 @@ import { useTheme } from '@/contexts/ThemeContext'
 import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { useSearchStore } from '@/components/SearchStore'
+
 const categories = categoriesData
 
 const Categories = () => {
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
-  
+  const { query } = useSearchStore();
+
   return (
-    <View style={{flex:1}}>
-      <RefreshScrollView style={styles.container} showsVerticalScrollIndicator={false}> 
+    <View style={{ flex: 1 }}>
+      <RefreshScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* <SectionHeader title='All Categories' /> */}
-        <Text style={{color:Colors.primary, fontSize: 16, fontWeight: '600', textAlign:'center', marginTop:5}}>
+        <Text style={{ color: Colors.primary, fontSize: 16, fontWeight: '600', textAlign: 'center', marginTop: 5 }}>
           All Categories
         </Text>
         <View style={styles.gridWrap}>
-          {categories.map((c, idx) => (
+          {categories.filter(c => c.title.toLowerCase().includes(query.toLowerCase())).map((c, idx) => (
             <CategoryTile key={idx} title={c.title} image={c.image} />
           ))}
         </View>
       </RefreshScrollView>
-      <FloatingButton 
+      <FloatingButton
         onPress={openHelpSideBar}
         icon='message-alert'
         color={Colors.primary}

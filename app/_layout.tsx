@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import BottomSheet, { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -23,25 +24,27 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <GestureHandlerRootView>
-        <SafeAreaView style={{flex:1}}>
-          {/* {loading ? (
-            <SplashScreen/>
-          ) : ( */}
-            <Stack screenOptions={{
-                 headerShown:false
-              }}
-            >
-              <Stack.Screen name="index" options={{headerShown:false}}/>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false, presentation:'modal' }} />
-              <Stack.Screen name="(modals)" options={{ headerShown: false, presentation:'modal' }} />
-              <Stack.Screen name="screens" options={{ headerShown: false }}/>
-              <Stack.Screen name="+not-found" />
-            </Stack>
-          {/* )} */}
-          <StatusBar  barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'}/>
-          <UpdatesModalController />
-        </SafeAreaView>
+        <BottomSheetModalProvider>
+          <SafeAreaView style={{flex:1}}>
+            {/* {loading ? (
+              <SplashScreen/>
+            ) : ( */}
+              <Stack screenOptions={{
+                  headerShown:false
+                }}
+              >
+                <Stack.Screen name="index" options={{headerShown:false}}/>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false, presentation:'modal' }} />
+                <Stack.Screen name="(modals)" options={{ headerShown: false, presentation:'modal' }} />
+                <Stack.Screen name="screens" options={{ headerShown: false }}/>
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            {/* )} */}
+            <StatusBar  barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'}/>
+            <UpdatesModalController />
+          </SafeAreaView>
+        </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
   )

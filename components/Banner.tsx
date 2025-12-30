@@ -29,11 +29,12 @@ export default function Banner({ images }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 150,
+    height: 160,
+    marginTop: -8
   },
   image: {
     width,
-    height: 150,
+    height: 160,
     resizeMode:'contain'
     // borderRadius:20
   }

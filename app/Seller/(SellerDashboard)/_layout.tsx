@@ -1,10 +1,11 @@
-import { StyleSheet, Text, View, Image } from 'react-native'
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native'
 import React from 'react'
-import { Tabs } from 'expo-router'
+import { Tabs, useRouter } from 'expo-router'
 import { Colors } from '@/constants/Colors'
 import { Entypo, FontAwesome6, Fontisto, Ionicons, MaterialIcons } from '@expo/vector-icons'
 
 const SellerDashboardLayout = () => {
+    const router = useRouter();
   return (
     <Tabs screenOptions={{
         // headerShown:false,
@@ -13,7 +14,10 @@ const SellerDashboardLayout = () => {
         tabBarInactiveTintColor:Colors.light,
         header:() => (
             <View style={{height:50, alignItems:'center', justifyContent:'center', backgroundColor:Colors.gray, flexDirection:'row'}}>
-                <Image source={require('@/assets/images/Logo1.webp')} style={{width:120, height:24, marginRight:10, marginLeft:-40, borderRadius:4}}/>
+                <TouchableOpacity onPress={()=> router.push('/(tabs)/home')}>
+                   <Image source={require('@/assets/images/Logo1.webp')} style={{width:120, height:24, marginRight:10, marginLeft:-40, borderRadius:4}}/>
+                </TouchableOpacity>
+                
                 <Text style={{color:Colors.primary, fontSize:18, fontWeight:'700'}}>Seller Dashboard</Text>
             </View>
         ),
@@ -39,7 +43,7 @@ const SellerDashboardLayout = () => {
       /> 
 
       <Tabs.Screen name="shop" options={{
-            tabBarLabel:'Shop',
+            tabBarLabel:'My Shop',
             tabBarIcon:({ color, size }) => <Entypo name='shop' size={size} color={color}/>
         }}
       />

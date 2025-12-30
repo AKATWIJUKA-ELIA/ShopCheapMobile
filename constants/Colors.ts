@@ -26,7 +26,7 @@ export const lightColors = {
   gray:'#0F172B',
   background:'#ffffff',
   dark:'black',
-  lightgray:'#6B7280',
+  lightgray:'#bdc4d2ff',
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'white',

@@ -78,7 +78,7 @@ export default function AccountSettings() {
           </View>
 
           <View style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
-            <MaterialCommunityIcons name="theme-light-dark" size={24} color={colors.light} />
+            <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.primary}/>
             <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Theme Switch</Text>
             <Switch value={darkThemeEnabled} 
               onValueChange={toggleTheme} 

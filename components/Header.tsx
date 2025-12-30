@@ -1,25 +1,31 @@
-import { useCartStore } from "@/components/Operations";
+import { useSearchStore } from "@/components/SearchStore";
+// import { useCartStore } from "@/components/Operations";
 import SearchBar from "@/components/SearchBar"; // ✅ Your custom SearchBar
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import HelpCenter, { openHelpSideBar } from "./ui/help";
-import { useTheme } from "@/contexts/ThemeContext";
+import HelpCenter from "./ui/help";
 
 const HomeHeader = () => {
   const router = useRouter();
-  const { items } = useCartStore();
-  const distinctCount = items.length;
+  const { query, setQuery } = useSearchStore();
+  // const { items } = useCartStore();
+  // const distinctCount = items.length;
   const [showSearch, setShowSearch] = useState(false);
   const [slideAnim] = useState(new Animated.Value(0)); // for smooth animation
 
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const { theme, toggleTheme } = useTheme();
 
   const toggleSearch = () => {
     setShowSearch(!showSearch);
+    if (!showSearch) {
+      // Reset search when closing? Optional. Based on UX preference. 
+      // For now, let's keep it so user can see what they searched.
+    }
     Animated.timing(slideAnim, {
       toValue: showSearch ? 0 : 1,
       duration: 250,
@@ -38,15 +44,16 @@ const HomeHeader = () => {
       <View style={styles.topRow}>
         {/* Menu */}
         <TouchableOpacity style={styles.iconButton}
+          onPress={() => router.push('/Seller/(SellerDashboard)')}
           onLongPress={toggleTheme}
         >
           {/* <Ionicons name="menu" size={26} color={Colors.primary} /> */}
           <Image source={require('@/assets/images/sc.png')}
             style={{
               width: 30,
-              height:30,
+              height: 30,
               marginRight: 4,
-              borderRadius:99,
+              borderRadius: 99,
             }}
           />
         </TouchableOpacity>
@@ -61,11 +68,11 @@ const HomeHeader = () => {
               /> */}
 
         {/* Search Icon */}
-        <TouchableOpacity style={[styles.iconButton, { marginRight: -24 }]} onPress={toggleSearch}>
+        <TouchableOpacity style={[styles.iconButton, { right: 0, left: 'auto' }]} onPress={toggleSearch}>
           <Ionicons name="search" size={24} color={colors.primary} />
         </TouchableOpacity>
 
-        {/* Cart with badge (distinct products count) */}
+        {/* Cart with badge (distinct products count)
         <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.85}>
           <View>
             <Ionicons name="cart-outline" size={24} color={colors.primary} />
@@ -75,19 +82,19 @@ const HomeHeader = () => {
               </View>
             ) : null}
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
-      <HelpCenter/>
+      <HelpCenter />
 
       {/* Animated SearchBar */}
       {showSearch && (
         <Animated.View style={[styles.searchWrapper, { transform: [{ translateY: slideDown }] }]}>
-          <SearchBar placeholder="Search products, brands and categories" />
+          <SearchBar placeholder="Search..." value={query} onChangeText={setQuery} />
         </Animated.View>
       )}
 
-      
+
     </View>
   );
 };
@@ -98,13 +105,12 @@ const appStyles = (colors: any) => StyleSheet.create({
   header: {
     backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray,
+    borderBottomColor: colors.background,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
-    paddingBottom: 4,
   },
   topRow: {
     flexDirection: "row",

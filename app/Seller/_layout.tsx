@@ -21,6 +21,10 @@ const SellerLayout = () => {
                 headerShown:false
           }}
         />
+        <Stack.Screen name='AddProduct' options={{
+                headerShown:false
+          }}
+        />
     </Stack>
   )
 }

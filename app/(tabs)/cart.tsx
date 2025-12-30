@@ -1,10 +1,9 @@
-import { clearCart, confirmClearCart, decrementCartItem, incrementCartItem, removeFromCart, useCartStore } from '@/components/Operations'
+import { confirmClearCart, decrementCartItem, incrementCartItem, removeFromCart, useCartStore } from '@/components/Operations'
 import RefreshScrollView from '@/components/RefreshScrollView'
-import FloatingButton from '@/components/ui/FloatingBtn'
-import HelpCenter, { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { formatPrice } from '@/types/product'
+import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useMemo } from 'react'
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
@@ -14,12 +13,12 @@ const Cart = () => {
   const isEmpty = items.length === 0;
   const router = useRouter();
 
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   if (isEmpty) {
     return (
-      <RefreshScrollView style={{flex:1, backgroundColor: colors.background}} contentContainerStyle={{flexGrow:1}}> 
+      <RefreshScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.containerCenter}>
           <View style={styles.illustration}>
             <MaterialIcons name='remove-shopping-cart' size={100} color={Colors.gray} />
@@ -39,25 +38,25 @@ const Cart = () => {
   }
 
   return (
-    <View style={{flex:1}}>
-          <RefreshScrollView style={styles.container}>
+    <View style={{ flex: 1 }}>
+      <RefreshScrollView style={styles.container}>
         {/* <Text style={styles.title}>Your Cart</Text> */}
         <View style={{ height: 12 }} />
         {items.map(ci => (
-          <View key={ci.product.id} style={styles.itemRow}>
-            <Image source={{ uri: ci.product.image }} style={styles.itemImage} />
+          <View key={ci.product._id} style={styles.itemRow}>
+            <Image source={{ uri: ci.product.product_image }} style={styles.itemImage} resizeMode="cover" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.itemTitle} numberOfLines={2}>{ci.product.name}</Text>
-              <Text style={styles.itemPrice}>${(ci.product.price * ci.quantity).toFixed(2)}</Text>
+              <Text style={styles.itemTitle} numberOfLines={2}>{ci.product.product_name}</Text>
+              <Text style={styles.itemPrice}>{formatPrice(parseFloat(ci.product.product_price) * ci.quantity)}</Text>
               <View style={styles.qtyRow}>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(ci.product.id)}>
+                <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(ci.product._id)}>
                   <Text style={styles.qtyBtnText}>-</Text>
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{ci.quantity}</Text>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(ci.product.id)}>
+                <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(ci.product._id)}>
                   <Text style={styles.qtyBtnText}>+</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.removeBtn} onPress={() => removeFromCart(ci.product.id)}>
+                <TouchableOpacity style={styles.removeBtn} onPress={() => removeFromCart(ci.product._id)}>
                   <Text style={styles.removeBtnText}>Remove</Text>
                 </TouchableOpacity>
               </View>
@@ -67,7 +66,7 @@ const Cart = () => {
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{formatPrice(total)}</Text>
         </View>
 
         <TouchableOpacity onPress={() => router.navigate('/(tabs)/home')} style={{
@@ -75,11 +74,11 @@ const Cart = () => {
           padding: 12,
           borderRadius: 99,
           alignItems: 'center',
-          flexDirection:'row',
-          justifyContent:'center',
-          gap:4,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 4,
           marginTop: -14,
-          marginBottom:14
+          marginBottom: 14
         }}>
           <Text style={{
             fontSize: 14,
@@ -88,14 +87,14 @@ const Cart = () => {
         </TouchableOpacity>
 
         <View style={{
-            justifyContent:'space-between', 
-            alignItems:'center', 
-            marginBottom:50, 
-            flexDirection:'row', 
-            flex:1, 
-            gap:10,
-            display: isEmpty ? 'none' : 'flex'
-          }}
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 50,
+          flexDirection: 'row',
+          flex: 1,
+          gap: 10,
+          display: isEmpty ? 'none' : 'flex'
+        }}
         >
           <TouchableOpacity onPress={confirmClearCart}
             style={{
@@ -103,13 +102,13 @@ const Cart = () => {
               padding: 12,
               borderRadius: 99,
               alignItems: 'center',
-              flexDirection:'row',
-              justifyContent:'center',
-              gap:4,
-          
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 4,
+
             }}
           >
-            <MaterialIcons name='delete-sweep' size={24} color={'red'}/>
+            <MaterialIcons name='delete-sweep' size={24} color={'red'} />
             <Text style={{
               color: 'red',
               fontSize: 14,
@@ -125,12 +124,12 @@ const Cart = () => {
               padding: 12,
               borderRadius: 99,
               alignItems: 'center',
-              flexDirection:'row',
-              justifyContent:'center',
-              gap:4,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 4,
             }}
           >
-            <MaterialIcons name='shopping-cart-checkout' size={24} color={colors.dark}/>
+            <MaterialIcons name='shopping-cart-checkout' size={24} color={colors.dark} />
             <Text style={{
               color: colors.dark,
               fontSize: 14,
@@ -252,7 +251,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#1f1f1f',
-    marginBottom:30
+    marginBottom: 30
   },
   totalLabel: {
     color: colors.text,

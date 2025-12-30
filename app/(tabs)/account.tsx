@@ -5,7 +5,7 @@ import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
 import { showUpdatesModal } from '@/components/Updates';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Feather, FontAwesome, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -80,7 +80,7 @@ const Account = () => {
           <View style={{flexDirection:'row', gap:10}}>
             <Link href='/(auth)/login' asChild>
               <TouchableOpacity style={styles.SignInBtn}>
-                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5}}>Sign In</Text>
+                <Text style={{color:colors.light, fontWeight:'bold', fontSize:12, marginLeft:5}}>Sign In</Text>
                 <FontAwesome name='sign-in' size={14} color={colors.light} style={{marginRight:5}} />
               </TouchableOpacity>
             </Link>
@@ -91,9 +91,9 @@ const Account = () => {
               </TouchableOpacity>
             </Link> */}
 
-            <Link href='/Seller/(SellerDashboard)/' asChild>
+            <Link href='/Seller/seller' asChild>
               <TouchableOpacity style={styles.SignInBtn}>
-                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5, marginRight:5}}>Seller Dashboard</Text>
+                <Text style={{color:colors.light, fontWeight:'bold', fontSize:12, marginLeft:5, marginRight:5, padding:4}}>Seller Dashboard</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -159,6 +159,14 @@ const Account = () => {
             <View style={styles.itemLeft}>
               <Ionicons name='settings-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Settings</Text>
+            </View>
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('https://www.shopcheapug.com/about')}>
+            <View style={styles.itemLeft}>
+              <FontAwesome5 name='shopware' size={20} color={colors.text} />
+              <Text style={styles.itemLabel}>About</Text>
             </View>
             <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
