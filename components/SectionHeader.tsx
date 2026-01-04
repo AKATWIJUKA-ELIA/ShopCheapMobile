@@ -33,7 +33,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 12,
   },
   title: {
-    color: colors.text,
+    color: colors.light,
     fontSize: 16,
     fontWeight: '600'
   },

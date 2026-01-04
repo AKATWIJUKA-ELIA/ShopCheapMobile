@@ -71,13 +71,13 @@ const Home = () => {
             <CategoryTile
               key={idx}
               title={c.cartegory || c.category || c.title || 'No Name'}
-              image={typeof c.image === 'string' && c.image.length > 0 ? 
-              { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
+              image={typeof c.image === 'string' && c.image.length > 0 ?
+                { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
             />
           ))}
         </ScrollView>
 
-        <View style={{ marginTop: 14 }} />
+        <View style={{ marginTop: 14, backgroundColor: colors.background }} />
 
         <View style={{ backgroundColor: colors.primary, marginTop: 10, marginBottom: 10, justifyContent: 'center', alignItems: 'center' }}>
           <SectionHeader title='All Products' />
@@ -89,31 +89,40 @@ const Home = () => {
   const renderEmptyOrLoading = () => {
     if (loading) {
       return (
-        <View style={{height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background,}}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ color: colors.text, marginTop: 10 }}>Loading products...</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background, }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ color: colors.text, marginTop: 10 }}>Loading products...</Text>
+          </View>
+          <View style={{height:200, backgroundColor:colors.background}}/>
         </View>
       );
     }
 
     if (error) {
       return (
-        <View style={{ height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background }}>
-          <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
-          <TouchableOpacity
-            onPress={fetchData}
-            style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
-          >
-            <Text style={{ color: colors.light }}>Retry</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
+            <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
+            <TouchableOpacity
+              onPress={fetchData}
+              style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
+            >
+              <Text style={{ color: colors.light }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{height:200, backgroundColor:colors.background}}/>
         </View>
       );
     }
 
     return (
-      <View style={{height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background }}>
-        <Text style={{ color: colors.text }}>No products available</Text>
-      </View>
+     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+       <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
+          <Text style={{ color: colors.text }}>No products available</Text>
+        </View>
+        <View style={{height:200, backgroundColor:colors.background}}/>
+     </View>
     );
   };
 
@@ -129,6 +138,7 @@ const Home = () => {
           contentContainerStyle={{ padding: 7 }}
           ListHeaderComponent={<HeroSection />}
           ListEmptyComponent={renderEmptyOrLoading}
+          showsVerticalScrollIndicator={false}
         />
       </View>
       <HelpCenter />

@@ -22,31 +22,31 @@ export default function RootLayout() {
 
 
   return (
-    <ThemeProvider>
-      <GestureHandlerRootView>
-        <BottomSheetModalProvider>
-          <SafeAreaView style={{flex:1}}>
-            {/* {loading ? (
-              <SplashScreen/>
-            ) : ( */}
-              <Stack screenOptions={{
-                  headerShown:false
-                }}
-              >
-                <Stack.Screen name="index" options={{headerShown:false}}/>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false, presentation:'modal' }} />
-                <Stack.Screen name="(modals)" options={{ headerShown: false, presentation:'modal' }} />
-                <Stack.Screen name="screens" options={{ headerShown: false }}/>
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            {/* )} */}
+    // <SafeAreaView style={{flex:1}}>
+      <ThemeProvider>
+        <GestureHandlerRootView>
+          <BottomSheetModalProvider>
+            <SafeAreaView style={{flex:1}}>
+                <Stack screenOptions={{
+                    headerShown:false
+                  }}
+                >
+                  <Stack.Screen name="index" options={{headerShown:false}}/>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false, presentation:'modal' }} />
+                  <Stack.Screen name="(modals)" options={{ headerShown: false, presentation:'modal' }} />
+                  <Stack.Screen name="screens" options={{ headerShown: false }}/>
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              {/* )} */}
+              <StatusBar  barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'}/>
+              <UpdatesModalController />
+            </SafeAreaView>
             <StatusBar  barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'}/>
-            <UpdatesModalController />
-          </SafeAreaView>
-        </BottomSheetModalProvider>
-      </GestureHandlerRootView>
-    </ThemeProvider>
+          </BottomSheetModalProvider>
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    // </SafeAreaView>
   )
 }
 

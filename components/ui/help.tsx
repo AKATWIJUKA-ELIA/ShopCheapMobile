@@ -33,15 +33,16 @@ export default function HelpCenter() {
       <SidebarModal visible={isSideBarOpen} 
         onClose={() => closeHelpSideBar()}
         widthPercent={0.32} // control width
-        heightPercent={0.34} // control height
+        // heightPercent={0.34} // control height
         top={200} // distance from top (remove if you want it auto-centered)
         side="right" // "left" or "right"
         blurType="dark"
         blurAmount={5}
+        height= {400}
       >
          <Pressable onPress={() => closeHelpSideBar()}/>
         <Text style={{ 
-            fontSize: 14, 
+            fontSize: 12, 
             fontWeight: "bold", 
             marginBottom: 20,
             justifyContent:'center',
@@ -52,43 +53,45 @@ export default function HelpCenter() {
           Reach Us
         </Text>
 
-        <View style={{flexDirection:'row', justifyContent:'space-between', gap:5}}>
-          <TouchableOpacity onPress={() => Linking.openURL('tel:+256772615135')}
-              style={[styles.helpBtn, {backgroundColor:'black'}]}
-          >
-            <Feather name='phone' size={24} color='white'/>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:jayoabs72@gmail.com')}
-              style={[styles.helpBtn, {backgroundColor:'black'}]}
-          >
-            <Feather name='mail' size={24} color='white'/>
-          </TouchableOpacity>
-        </View>
+        <View style={{gap:20,}}>
+          <View style={{flexDirection:'row', justifyContent:'space-between', gap:8}}>
+            <TouchableOpacity onPress={() => Linking.openURL('tel:+256772615135')}
+                style={[styles.helpBtn, {backgroundColor:'black'}]}
+            >
+              <Feather name='phone' size={24} color='white'/>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('mailto:jayoabs72@gmail.com')}
+                style={[styles.helpBtn, {backgroundColor:'black'}]}
+            >
+              <Feather name='mail' size={24} color='white'/>
+            </TouchableOpacity>
+          </View>
 
-        <View style={{flexDirection:'row', justifyContent:'space-between', marginTop:20, gap:5}}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/256772615135')}
-              style={[styles.helpBtn, {backgroundColor:'#25D366'}]}
-          >
-            <FontAwesome name='whatsapp' size={24} color='white'/>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://facebook.com/jayoabs') }
-              style={[styles.helpBtn, {backgroundColor:'#1877F2'}]}
-          >
-            <FontAwesome name='facebook' size={24} color='white'/>
-          </TouchableOpacity>
-        </View>
+          <View style={{flexDirection:'row', justifyContent:'space-between', gap:8}}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/256772615135')}
+                style={[styles.helpBtn, {backgroundColor:'#25D366'}]}
+            >
+              <FontAwesome name='whatsapp' size={24} color='white'/>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://facebook.com/jayoabs') }
+                style={[styles.helpBtn, {backgroundColor:'#1877F2'}]}
+            >
+              <FontAwesome name='facebook' size={24} color='white'/>
+            </TouchableOpacity>
+          </View>
 
-        <View style={{flexDirection:'row', justifyContent:'space-between', marginTop:20, gap:5}}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://instagram.com/aaronelegant') }
-              style={[styles.helpBtn, {backgroundColor:'#DD2A7B'}]}
-          >
-            <FontAwesome name='instagram' size={24} color='white'/>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://twitter.com/JayOabs')}
-              style={[styles.helpBtn, {backgroundColor:'black'}]}
-          >
-            <FontAwesome name='twitter' size={24} color='white'/>
-          </TouchableOpacity>
+          <View style={{flexDirection:'row', justifyContent:'space-between', gap:8}}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://instagram.com/aaronelegant') }
+                style={[styles.helpBtn, {backgroundColor:'#DD2A7B'}]}
+            >
+              <FontAwesome name='instagram' size={24} color='white'/>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://twitter.com/JayOabs')}
+                style={[styles.helpBtn, {backgroundColor:'black'}]}
+            >
+              <FontAwesome name='twitter' size={24} color='white'/>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* <TouchableOpacity

@@ -7,26 +7,28 @@ import { AntDesign, Entypo, Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const { items } = useCartStore();
   const distinctCount = items.length;
   const {colors} = useTheme();
   // const styles = useMemo(() => appStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs screenOptions={{
       tabBarActiveTintColor: colors.primary,
       tabBarInactiveTintColor: colors.grayish,
-      tabBarStyle: { backgroundColor: colors.background, paddingTop:5, height:60 },
+      tabBarStyle: { backgroundColor: colors.background, height:60, paddingBottom:20},
       headerShown:false,
-      tabBarLabelStyle:{fontSize:11, fontWeight:'700'},
+      tabBarLabelStyle:{fontSize:11, fontWeight:'600'},
+      tabBarShowLabel:true,
     }}>
       <Tabs.Screen name='home' options={{
         title:'Home', 
         headerShown:true,
         header: () => <HomeHeader />,
-        tabBarLabelStyle:{fontSize:12},
         tabBarIcon:({ color, size }) => <Ionicons name='home' size={size} color={color}/>,
         // headerLeft:() => (
         //   <Image source={{uri:'https://shopcheap.vercel.app/_next/image?url=%2Fimages%2Flogo2.png&w=1080&q=75'}}

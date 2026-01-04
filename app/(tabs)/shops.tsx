@@ -236,10 +236,10 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingLeft: 8,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 12,
   },
   card: {
     flex: 1,

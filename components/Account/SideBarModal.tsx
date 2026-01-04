@@ -10,12 +10,14 @@ export default function SidebarModal({
   onClose,
   widthPercent = 0.7,
   heightPercent = 0.6,
+  height = 200,
   top = null,
   bottom = null,
   side = "left",
   blurType = "dark",
   blurAmount = 10,
   children,
+  ...props
 }: any) {
   const [internalVisible, setInternalVisible] = useState(visible);
 
@@ -107,12 +109,14 @@ const styles = StyleSheet.create({
   sidebar: {
     position: "absolute",
     backgroundColor: Colors.gray,
-    borderRadius: 16,
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
     padding: 20,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowOffset: { width: 2, height: 2 },
     shadowRadius: 8,
     elevation: 5,
+    // marginRight:8
   },
 });
