@@ -22,6 +22,17 @@ export interface Product {
     approved: boolean;
 }
 
+export interface Category {
+    _id: string;
+    // _creationTime: number; 
+    cartegory: string; // The API uses this typo
+    category?: string; // Optional for compatibility
+    title?: string; // Fallback
+    image?: {
+        uri: string;
+    } | string | any;
+}
+
 // Format price with UGX currency
 export function formatPrice(price: string | number): string {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -32,3 +43,6 @@ export function formatPrice(price: string | number): string {
 // API endpoint
 export const API_BASE_URL = 'https://cheery-cod-687.convex.site';
 export const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
+export const CATEGORIES_API_URL = `${API_BASE_URL}/categories`;
+export const AUTH_API_URL = `${API_BASE_URL}/auth`;
+export const CREATE_USER_API_URL = `${API_BASE_URL}/create-user`;

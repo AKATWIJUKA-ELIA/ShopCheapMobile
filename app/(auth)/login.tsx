@@ -1,37 +1,73 @@
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { AUTH_API_URL } from '@/types/product'
 import { AntDesign, Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const router = useRouter();
-  const {colors, theme, toggleTheme} = useTheme();
+  const { colors, theme, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev); // 👈 Toggle handler
 
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(AUTH_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Success
+        Alert.alert('Success', 'Login successful!');
+        // Here you would typically save the user session/token
+        // For now, just navigate to home
+        router.replace('/(tabs)/home');
+      } else {
+        // Error from API
+        Alert.alert('Login Failed', data.message || 'Invalid credentials');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred. Please try again later.');
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={{left:0, width:40, top:0}}>
+      <View style={{ left: 0, width: 40, top: 0 }}>
         <TouchableOpacity onPress={() => router.navigate('/(tabs)/account')} style={{
-            backgroundColor:colors.background,
-            borderRadius:99,
-            padding:5,
-            height:40, 
-            justifyContent:'space-between',
-            alignItems:'center'
-            }}>
-          <Ionicons name='arrow-back' size={30} color={colors.text}/>
+          backgroundColor: colors.background,
+          borderRadius: 99,
+          padding: 5,
+          height: 40,
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Ionicons name='arrow-back' size={30} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <View style={{justifyContent:'center', alignItems:'center'}}>
+      <View style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
       </View>
@@ -67,8 +103,17 @@ export default function Login() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.5}>
-        <Text style={styles.primaryBtnText}>Sign In</Text>
+      <TouchableOpacity
+        style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+        activeOpacity={0.5}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#000" />
+        ) : (
+          <Text style={styles.primaryBtnText}>Sign In</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity>
@@ -89,28 +134,28 @@ export default function Login() {
       </View>
 
       <View style={styles.inline}>
-        <Text style={{ color: colors.grayish}}>Don't have an account?</Text>
+        <Text style={{ color: colors.grayish }}>Don't have an account?</Text>
         <Link href='/(auth)/signup' style={styles.link}>Sign Up</Link>
       </View>
 
 
       <TouchableOpacity
-          onPress={toggleTheme}
-          style={[{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            // backgroundColor:colors.primary,
-            padding:10,
-            borderRadius:99
-          }]}
-        >
-          <Ionicons
-            name={theme === 'dark' ? 'moon' : 'sunny'}
-            size={25}
-            color={theme === 'dark' ? colors.light : colors.text}
-          />
-        </TouchableOpacity>
+        onPress={toggleTheme}
+        style={[{
+          position: 'absolute',
+          top: 20,
+          right: 20,
+          // backgroundColor:colors.primary,
+          padding: 10,
+          borderRadius: 99
+        }]}
+      >
+        <Ionicons
+          name={theme === 'dark' ? 'moon' : 'sunny'}
+          size={25}
+          color={theme === 'dark' ? colors.light : colors.text}
+        />
+      </TouchableOpacity>
     </View>
   )
 }
@@ -142,12 +187,12 @@ const appStyles = (colors: any) => StyleSheet.create({
     // paddingVertical: 12,
     // borderRadius: 24,
     marginBottom: 12,
-    height:60
+    height: 60
   },
   input: {
     flex: 1,
     color: colors.text,
-    fontSize:14
+    fontSize: 14
   },
   primaryBtn: {
     backgroundColor: colors.primary,

@@ -21,7 +21,7 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
   return (
     <TouchableOpacity style={styles.container} onPress={() => router.push({ pathname: '/(modals)/product', params: { id: product._id } })} activeOpacity={0.8}>
       <Image
-        source={{ uri: product.product_image }}
+        source={(product.product_image && product.product_image !== '') ? { uri: product.product_image } : require('@/assets/images/placeholder.png')}
         style={styles.image}
         resizeMode="cover"
       />

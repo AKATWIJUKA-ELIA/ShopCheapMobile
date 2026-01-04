@@ -5,15 +5,14 @@ import SectionHeader from '@/components/SectionHeader'
 import FloatingButton from '@/components/ui/FloatingBtn'
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
-import { banners as bannerImages, categories as categoriesData } from '@/constants/data'
+import { banners as bannerImages } from '@/constants/data'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Product, PRODUCTS_API_URL } from '@/types/product'
+import { CATEGORIES_API_URL, Category, Product, PRODUCTS_API_URL } from '@/types/product'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
-const banners = bannerImages
-const categories = categoriesData;
+const banners = bannerImages;
 
 import { useSearchStore } from '@/components/SearchStore'
 
@@ -24,25 +23,31 @@ const Home = () => {
   const { query } = useSearchStore();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(PRODUCTS_API_URL);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch(PRODUCTS_API_URL),
+        fetch(CATEGORIES_API_URL)
+      ]);
+
+      if (!productsRes.ok || !categoriesRes.ok) {
+        throw new Error('Failed to fetch data');
       }
 
-      const data: Product[] = await response.json();
+      const [productsData, categoriesData] = await Promise.all([
+        productsRes.json(),
+        categoriesRes.json()
+      ]);
 
-      // Filter only approved products
-      const approvedProducts = data.filter((item) => item.approved);
-
-      setProducts(approvedProducts);
+      setProducts(productsData.filter((item: Product) => item.approved));
+      setCategories(categoriesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -51,7 +56,7 @@ const Home = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
   const HeroSection = () => {
@@ -63,7 +68,11 @@ const Home = () => {
           showsHorizontalScrollIndicator={false}
         >
           {categories.slice(0, 8).map((c, idx) => (
-            <CategoryTile key={idx} title={c.title} image={c.image} />
+            <CategoryTile
+              key={idx}
+              title={c.cartegory || c.category || c.title || 'No Name'}
+              image={c.image || require('@/assets/images/placeholder.png')}
+            />
           ))}
         </ScrollView>
 
@@ -79,7 +88,7 @@ const Home = () => {
   const renderEmptyOrLoading = () => {
     if (loading) {
       return (
-        <View style={{ padding: 40, alignItems: 'center', backgroundColor:colors.background }}>
+        <View style={{ paddingVertical: 140, alignItems: 'center', backgroundColor: colors.background, flex: 1, height: 'auto' }}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ color: colors.text, marginTop: 10 }}>Loading products...</Text>
         </View>
@@ -88,10 +97,10 @@ const Home = () => {
 
     if (error) {
       return (
-        <View style={{ padding: 40, alignItems: 'center' }}>
+        <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
           <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
           <TouchableOpacity
-            onPress={fetchProducts}
+            onPress={fetchData}
             style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
           >
             <Text style={{ color: colors.light }}>Retry</Text>
@@ -101,7 +110,7 @@ const Home = () => {
     }
 
     return (
-      <View style={{ padding: 40, alignItems: 'center' }}>
+      <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
         <Text style={{ color: colors.text }}>No products available</Text>
       </View>
     );
@@ -109,9 +118,9 @@ const Home = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View>
+      <View style={{ backgroundColor: colors.background }}>
         <FlatList
-          data={products.filter(p => p.product_name.toLowerCase().includes(query.toLowerCase()))}
+          data={products.filter(p => (p.product_name || '').toLowerCase().includes((query || '').toLowerCase()))}
           numColumns={2}
           renderItem={({ item, index }) => (<RenderItem item={item} index={index} />)}
           keyExtractor={(item) => item._id}

@@ -1,9 +1,9 @@
-import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { CREATE_USER_API_URL } from '@/types/product'
 import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 export default function Signup() {
   const [userName, setUserName] = useState('')
@@ -11,27 +11,67 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const {colors, theme, toggleTheme} = useTheme();
+  const { colors, theme, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
-  const togglePasswordVisibility = () => setShowPassword((prev) => !prev); 
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
   const router = useRouter();
 
+  const handleSignup = async () => {
+    if (!userName || !email || !password || !phone) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(CREATE_USER_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: userName,
+          email,
+          passwordHash: password, // The API expects passwordHash (even if it's plain text for now as per docs)
+          phoneNumber: phone,
+          isVerified: false,
+          role: 'user',
+          reset_token_expires: 0,
+          updatedAt: Date.now(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Account created successfully!');
+        router.replace('/(auth)/login');
+      } else {
+        Alert.alert('Signup Failed', data.message || 'Error creating account');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred. Please try again later.');
+      console.error('Signup error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={{left:0, width:40, top:0,}}>
+      <View style={{ left: 0, width: 40, top: 0, }}>
         <TouchableOpacity onPress={() => router.back()} style={{
-            backgroundColor:colors.background,
-            borderRadius:99,
-            padding:5
-            }}>
-          <Ionicons name='arrow-back' size={30} color={colors.text}/>
+          backgroundColor: colors.background,
+          borderRadius: 99,
+          padding: 5
+        }}>
+          <Ionicons name='arrow-back' size={30} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <View style={{justifyContent:'center', alignItems:'center', marginTop:-20}}>
+      <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: -20 }}>
         <Text style={styles.title}>Create your account</Text>
         <Text style={styles.subtitle}>Join Shop Cheap today</Text>
       </View>
@@ -84,8 +124,17 @@ export default function Signup() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.5}>
-        <Text style={styles.primaryBtnText}>Create Account</Text>
+      <TouchableOpacity
+        style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+        activeOpacity={0.5}
+        onPress={handleSignup}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#000" />
+        ) : (
+          <Text style={styles.primaryBtnText}>Create Account</Text>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.or}>or continue with</Text>
@@ -113,8 +162,8 @@ export default function Signup() {
           top: 20,
           right: 20,
           // backgroundColor:colors.primary,
-          padding:10,
-          borderRadius:99
+          padding: 10,
+          borderRadius: 99
         }]}
       >
         <Ionicons
@@ -154,12 +203,12 @@ const appStyles = (colors: any) => StyleSheet.create({
     // paddingVertical: 12,
     // borderRadius: 24,
     marginBottom: 12,
-    height:60
+    height: 60
   },
   input: {
     flex: 1,
     color: colors.text,
-    fontSize:14
+    fontSize: 14
   },
   primaryBtn: {
     backgroundColor: colors.primary,
@@ -201,7 +250,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginTop: 18,
-    justifyContent:'center'
+    justifyContent: 'center'
   },
   link: {
     color: colors.primary,
