@@ -71,7 +71,8 @@ const Home = () => {
             <CategoryTile
               key={idx}
               title={c.cartegory || c.category || c.title || 'No Name'}
-              image={c.image || require('@/assets/images/placeholder.png')}
+              image={typeof c.image === 'string' && c.image.length > 0 ? 
+              { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
             />
           ))}
         </ScrollView>
@@ -88,7 +89,7 @@ const Home = () => {
   const renderEmptyOrLoading = () => {
     if (loading) {
       return (
-        <View style={{ paddingVertical: 140, alignItems: 'center', backgroundColor: colors.background, flex: 1, height: 'auto' }}>
+        <View style={{height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background,}}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ color: colors.text, marginTop: 10 }}>Loading products...</Text>
         </View>
@@ -97,7 +98,7 @@ const Home = () => {
 
     if (error) {
       return (
-        <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
+        <View style={{ height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background }}>
           <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
           <TouchableOpacity
             onPress={fetchData}
@@ -110,7 +111,7 @@ const Home = () => {
     }
 
     return (
-      <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={{height:1000, paddingVertical:100, alignItems: 'center', backgroundColor: colors.background }}>
         <Text style={{ color: colors.text }}>No products available</Text>
       </View>
     );

@@ -72,7 +72,8 @@ const Categories = () => {
           <CategoryTile
             key={idx}
             title={c.cartegory || c.title || 'No Name'}
-            image={typeof c.image === 'string' ? { uri: c.image } : c.image || require('@/assets/images/placeholder.png')}
+            image={typeof c.image === 'string' && c.image.length > 0 ? 
+              { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
           />
         ))}
       </View>
