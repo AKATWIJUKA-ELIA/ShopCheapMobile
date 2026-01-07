@@ -50,8 +50,18 @@ export default function ProductModal() {
     try {
       const res = await fetch(`${GET_REVIEWS_API_URL}?productId=${productId}`);
       const data = await res.json();
+
+      let reviewList: Review[] = [];
       if (Array.isArray(data)) {
-        setReviews(data);
+        reviewList = data;
+      } else if (data && Array.isArray(data.reviews)) {
+        reviewList = data.reviews;
+      } else if (data && Array.isArray(data.data)) {
+        reviewList = data.data;
+      }
+
+      if (reviewList.length > 0) {
+        setReviews(reviewList);
       }
     } catch (err) {
       console.error("Error fetching reviews:", err);
@@ -62,8 +72,18 @@ export default function ProductModal() {
     try {
       const res = await fetch(`${GET_RELATED_PRODUCTS_API_URL}?category=${category}`);
       const data = await res.json();
+
+      let related: Product[] = [];
       if (Array.isArray(data)) {
-        setRelatedProducts(data.filter(p => p._id !== productId));
+        related = data;
+      } else if (data && Array.isArray(data.products)) {
+        related = data.products;
+      } else if (data && Array.isArray(data.data)) {
+        related = data.data;
+      }
+
+      if (related.length > 0) {
+        setRelatedProducts(related.filter(p => p._id !== productId));
       }
     } catch (err) {
       console.error("Error fetching related products:", err);
@@ -87,22 +107,63 @@ export default function ProductModal() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${GET_PRODUCT_API_URL}?id=${productId}`);
-      if (!res.ok) throw new Error("Failed to fetch product");
+      const res = await fetch(`${GET_PRODUCT_API_URL}?id=${encodeURIComponent(productId)}`);
+      console.log(`[ProductDetail] Fetching ID: ${productId}, Status: ${res.status}`);
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`[ProductDetail] Fetch failed:`, text);
+        throw new Error(`Failed to fetch product (${res.status})`);
+      }
+
       const data = await res.json();
-      if (data) {
-        setProduct(data);
-        if (data.product_category || data.product_cartegory) {
-          fetchRelated(data.product_category || data.product_cartegory);
+      console.log(`[ProductDetail] Raw Data Keys:`, Object.keys(data || {}));
+
+      let fetchedProduct: any = null;
+
+      // 1. Try to find the product object in common wrappers
+      if (data && typeof data === 'object') {
+        if (data._id || data.id) {
+          fetchedProduct = data;
+        } else if (data.product && typeof data.product === 'object') {
+          fetchedProduct = data.product;
+        } else if (data.data && typeof data.data === 'object') {
+          fetchedProduct = data.data;
+        } else if (data.result && typeof data.result === 'object') {
+          fetchedProduct = data.result;
         }
-        if (data.product_owner_id) {
-          fetchSellerShop(data.product_owner_id);
+      }
+
+      // 2. Normalize ID if found
+      if (fetchedProduct) {
+        const actualId = fetchedProduct._id || fetchedProduct.id || fetchedProduct.product_id;
+        if (actualId) {
+          fetchedProduct._id = actualId; // Ensure we have _id for our internal logic
+        }
+      }
+
+      if (fetchedProduct && fetchedProduct._id) {
+        setProduct(fetchedProduct);
+
+        // Use any available category field
+        const cat = fetchedProduct.product_category ||
+          fetchedProduct.product_cartegory ||
+          fetchedProduct.category;
+
+        if (cat) {
+          fetchRelated(cat);
+        }
+
+        if (fetchedProduct.product_owner_id || fetchedProduct.owner_id) {
+          fetchSellerShop(fetchedProduct.product_owner_id || fetchedProduct.owner_id);
         }
         fetchReviews();
       } else {
-        setError('Product not found');
+        console.warn(`[ProductDetail] Product extraction failed for ID ${productId}. Data:`, data);
+        setError('Product not found or invalid response');
       }
     } catch (err) {
+      console.error("fetchProductData error:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -195,7 +256,7 @@ export default function ProductModal() {
         </Text>
       </View>
 
-      <ScrollView style={{ padding: 10 }}>
+      <ScrollView style={{ padding: 10 }} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={{ position: 'relative' }}>
           <FlatList
             data={images}
@@ -210,7 +271,7 @@ export default function ProductModal() {
             }}
             renderItem={({ item }) => (
               <Image
-                source={{ uri: item }}
+                source={item ? { uri: item } : require('@/assets/images/placeholder.png')}
                 style={[styles.image, { width: SCREEN_WIDTH - 20 }]}
                 resizeMode='cover'
               />
@@ -250,6 +311,11 @@ export default function ProductModal() {
           <Text style={styles.detailLabel}>Condition:</Text>
           <Text style={styles.detailValue}>{product.product_condition || 'N/A'}</Text>
         </View>
+{/* 
+        <View style={styles.detailsRow}>
+          <Text style={styles.detailLabel}>Product:</Text>
+          <Text style={styles.detailValue}>{product.product_sponsorship?.status || 'N/A'}</Text>
+        </View> */}
 
         <View style={{ height: 16 }} />
 
@@ -346,15 +412,15 @@ export default function ProductModal() {
           <Text style={styles.sectionTitle}>Seller Details</Text>
           <View style={[styles.detailsRow,]}>
             <Text style={styles.detailLabel}>Seller:</Text>
-            <Text style={styles.detailValue}>{sellerShop?.shop_name || product.product_owner_id}</Text>
+            <Text style={styles.detailValue}>{product.seller.username || product.product_owner_id}</Text>
           </View>
           <View style={[styles.detailsRow,]}>
             <Text style={styles.detailLabel}>Contact:</Text>
-            <Text style={styles.detailValue}>{sellerShop?.phone || 'N/A'}</Text>
+            <Text style={styles.detailValue}>{product.seller.phoneNumber || 'N/A'}</Text>
           </View>
           <View style={[styles.detailsRow,]}>
             <Text style={styles.detailLabel}>Email:</Text>
-            <Text style={styles.detailValue}>{sellerShop?.email || 'N/A'}</Text>
+            <Text style={styles.detailValue}>{product.seller.email|| 'N/A'}</Text>
           </View>
           {sellerShop?.phone && (
             <TouchableOpacity style={styles.detailsRow} onPress={() => Linking.openURL(`tel:${sellerShop.phone}`)}>

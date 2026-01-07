@@ -21,6 +21,13 @@ export interface Product {
         type: string;
     };
     approved: boolean;
+    seller: {
+        _id: string;
+        username: string;
+        isVerified: boolean;
+        phoneNumber?: string;
+        email?: string;
+    };
 }
 
 export interface Review {
