@@ -2,10 +2,11 @@ import AddressScreen from '@/components/Account/DeliveryAddress';
 import RefreshScrollView from '@/components/RefreshScrollView';
 import AccountSettings, { openSettingsPopUp } from '@/components/ui/dark-mode';
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
-import { showUpdatesModal } from '@/components/Updates';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useCartStore } from '@/store/useCartStore';
+import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -15,14 +16,16 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 const { height } = Dimensions.get("window");
 
 const Account = () => {
-  const {colors, theme} = useTheme();
+  const { colors, theme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const router = useRouter();
 
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const { clearCart } = useCartStore();
 
-  //for the bottomsheet modal
+  // Bottom sheet state
   const translateY = useState(new Animated.Value(height))[0];
   const [visible, setVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(height));
 
   const openBottomSheetModal = () => {
     setVisible(true);
@@ -41,120 +44,119 @@ const Account = () => {
     }).start(() => setVisible(false));
   };
 
-    const onGestureEvent = Animated.event(
-      [{ nativeEvent: { translationY: translateY } }],
-      { useNativeDriver: true }
-    );
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: translateY } }],
+    { useNativeDriver: true }
+  );
 
-      const onHandlerStateChange = ({ nativeEvent }: any) => {
-        if (nativeEvent.state === 5) {
-          // 5 = GestureHandlerState.END
-          if (nativeEvent.translationY > 150) {
-            closeBottomSheetModal();
-          } else {
-            Animated.spring(translateY, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-          }
-        }
-      };
-  const router = useRouter();
+  const onHandlerStateChange = ({ nativeEvent }: any) => {
+    if (nativeEvent.state === 5) {
+      if (nativeEvent.translationY > 150) {
+        closeBottomSheetModal();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    clearCart();
+    router.replace('/(tabs)/home');
+  };
 
   return (
-    <RefreshScrollView style={styles.container}> 
+    <RefreshScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          {/* <Ionicons name='person' size={28} color={'#000'} /> */}
-          <Image source={{uri: 'https://avatars.githubusercontent.com/u/143481214?v=4'}}
+          <Image
+            source={{ uri: user?.profilePicture || 'https://avatars.githubusercontent.com/u/143481214?v=4' }}
             style={{
-              width:70,
-              height:70,
-              borderRadius:99
+              width: 70,
+              height: 70,
+              borderRadius: 99
             }}
           />
         </View>
         <View style={{ marginLeft: 12 }}>
-          <Text style={styles.name}>Hello, Jay!</Text>
-          {/* <Text style={styles.subtle}>Sign in to your account</Text> */}
-          <View style={{flexDirection:'row', gap:10}}>
-            <Link href='/(auth)/login' asChild>
-              <TouchableOpacity style={styles.SignInBtn}>
-                <Text style={{color:colors.light, fontWeight:'bold', fontSize:12, marginLeft:5}}>Sign In</Text>
-                <FontAwesome name='sign-in' size={14} color={colors.light} style={{marginRight:5}} />
+          <Text style={styles.name}>{isAuthenticated ? `Hello, ${user?.username}!` : 'Hello, Guest!'}</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {!isAuthenticated ? (
+              <Link href='/(auth)/login' asChild>
+                <TouchableOpacity style={styles.SignInBtn}>
+                  <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5 }}>Sign In</Text>
+                  <FontAwesome name='sign-in' size={14} color={colors.light} style={{ marginRight: 5 }} />
+                </TouchableOpacity>
+              </Link>
+            ) : (
+              <TouchableOpacity style={styles.SignInBtn} onPress={handleLogout}>
+                <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5 }}>Sign Out</Text>
+                <FontAwesome name='sign-out' size={14} color={colors.light} style={{ marginRight: 5 }} />
               </TouchableOpacity>
-            </Link>
-{/* 
-            <Link href='/Seller/seller' asChild>
-              <TouchableOpacity style={styles.SignInBtn}>
-                <Text style={{color:colors.light, fontWeight:'bold', fontSize:14, marginLeft:5, marginRight:5}}>Become a seller</Text>
-              </TouchableOpacity>
-            </Link> */}
+            )}
 
-            <Link href='/Seller/seller' asChild>
-              <TouchableOpacity style={styles.SignInBtn}>
-                <Text style={{color:colors.light, fontWeight:'bold', fontSize:12, marginLeft:5, marginRight:5, padding:4}}>Seller Dashboard</Text>
-              </TouchableOpacity>
-            </Link>
+            {isAuthenticated && user?.role === 'seller' ? (
+              <Link href='/Seller/seller' asChild>
+                <TouchableOpacity style={styles.SignInBtn}>
+                  <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5, padding: 4 }}>Seller Dashboard</Text>
+                </TouchableOpacity>
+              </Link>
+            ) : isAuthenticated && (
+              <Link href='/Seller/seller' asChild>
+                <TouchableOpacity style={styles.SignInBtn}>
+                  <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5, padding: 4 }}>Become a Seller</Text>
+                </TouchableOpacity>
+              </Link>
+            )}
           </View>
-
-          {/* <TouchableOpacity style={styles.SignInBtn}>
-            <Text style={{color:colors.dark, fontWeight:'bold'}}>Sign Out</Text>
-            <FontAwesome name='sign-out' size={20} color={colors.dark} />
-          </TouchableOpacity> */}
         </View>
       </View>
 
+      {isAuthenticated && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <View>
+            <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/profile')}>
+              <View style={styles.itemLeft}>
+                <Ionicons name='person-outline' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>Profile</Text>
+              </View>
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </TouchableOpacity>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View>
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/profile')}>
-            <View style={styles.itemLeft}>
-              <Ionicons name='person-outline' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Profile</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
-          </TouchableOpacity>
+            {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openBottomSheetModal}>
+              <View style={styles.itemLeft}>
+                <Ionicons name='location-outline' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>Delivery Addresses</Text>
+              </View>
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </TouchableOpacity> */}
 
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openBottomSheetModal}>
-            <View style={styles.itemLeft}>
-              <Ionicons name='location-outline' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Delivery Addresses</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/bookmarks')}>
+              <View style={styles.itemLeft}>
+                <Feather name='bookmark' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>Bookmarks</Text>
+              </View>
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/bookmarks')}> 
-            <View style={styles.itemLeft}>
-              <Feather name='bookmark' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Bookmarks</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/transactions')}> 
-            <View style={styles.itemLeft}>
-              <Feather name='credit-card' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Transactions</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/transactions')}>
+              <View style={styles.itemLeft}>
+                <Feather name='credit-card' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>Transactions</Text>
+              </View>
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         <View>
-          {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/notifications')}>
-            <View style={styles.itemLeft}>
-              <Ionicons name='notifications-outline' size={20} color={colors.text} />
-              <Text style={styles.itemLabel}>Notifications</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.gray} />
-          </TouchableOpacity> */}
-
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
             <View style={styles.itemLeft}>
               <Ionicons name='settings-outline' size={20} color={colors.text} />
@@ -181,48 +183,38 @@ const Account = () => {
         </View>
       </View>
 
-      {/* <View style={{justifyContent:'center', alignItems:'center'}}>
-        <TouchableOpacity style={styles.UpdatesBtn} onPress={showUpdatesModal}>
-          <Text>Check for Updates</Text>
-          <MaterialIcons name='update' size={24} color={colors.dark}/>
-        </TouchableOpacity>
-      </View> */}
-
-
-
-      {/* Bottom Sheet Modal for the Delivery addresses */}
-
       <Modal
         transparent
         visible={visible}
         animationType="fade"
         onRequestClose={closeBottomSheetModal}
       >
-        {/* Bottom Sheet */}
         <BlurView style={styles.overlay}
           blurAmount={7}
           blurType={theme === 'dark' ? 'light' : 'dark'}
         >
           <PanGestureHandler
-              onGestureEvent={onGestureEvent}
-              onHandlerStateChange={onHandlerStateChange}
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
           >
             <Animated.View
               style={[
                 styles.bottomSheet,
-                { transform: [{ 
-                  translateY: translateY.interpolate({
+                {
+                  transform: [{
+                    translateY: translateY.interpolate({
                       inputRange: [0, height],
                       outputRange: [0, height],
                       extrapolate: "clamp",
                     }),
-                }] },
+                  }]
+                },
               ]}
             >
-              <View style={[styles.SheetHeader, { marginBottom: 16, borderBottomColor: colors.primary, borderBottomWidth:1 }]}>
+              <View style={[styles.SheetHeader, { marginBottom: 16, borderBottomColor: colors.primary, borderBottomWidth: 1 }]}>
                 <MaterialCommunityIcons name="truck-delivery" size={30} color={colors.primary} />
-                <Text style={[styles.headerTitle, {padding:10}]}>Select Delivery Address</Text>
-                <View style={{ width: 24 }} /> 
+                <Text style={[styles.headerTitle, { padding: 10 }]}>Select Delivery Address</Text>
+                <View style={{ width: 24 }} />
               </View>
 
               <TouchableOpacity onPress={closeBottomSheetModal} style={{
@@ -230,22 +222,22 @@ const Account = () => {
                 top: 12,
                 right: 12
               }}>
-                <Ionicons name="caret-down" size={24} color={colors.primary}/>
+                <Ionicons name="caret-down" size={24} color={colors.primary} />
               </TouchableOpacity>
 
-              <AddressScreen/>
+              <AddressScreen />
             </Animated.View>
           </PanGestureHandler>
         </BlurView>
       </Modal>
 
       <AccountSettings />
-      <HelpCenter/>
+      <HelpCenter />
     </RefreshScrollView>
-  )
-}
+  );
+};
 
-export default Account
+export default Account;
 
 const appStyles = (colors: any) => StyleSheet.create({
   container: {
@@ -261,11 +253,10 @@ const appStyles = (colors: any) => StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 99,
-    // backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor:colors.primary,
-    borderWidth:1
+    borderColor: colors.primary,
+    borderWidth: 1
   },
   name: {
     color: colors.text,
@@ -312,9 +303,9 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 14,
     borderTopColor: colors.borderLine,
     borderTopWidth: 1,
-    backgroundColor:colors.card,
-    padding:12,
-    borderRadius:10,
+    backgroundColor: colors.card,
+    padding: 12,
+    borderRadius: 10,
   },
   itemLeft: {
     flexDirection: 'row',
@@ -323,31 +314,31 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   itemLabel: {
     color: colors.text,
-    fontSize:16
+    fontSize: 16
   },
-  SignInBtn:{
-    backgroundColor:Colors.primary,
-    justifyContent:'center',
-    alignItems:'center',
-    padding:4,
-    borderRadius:24,
-    marginTop:10,
-    flexDirection:'row',
-    gap:10,
-    width:'auto',
+  SignInBtn: {
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 4,
+    borderRadius: 24,
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 10,
+    width: 'auto',
   },
-  UpdatesBtn:{
-    backgroundColor:colors.primary,
-    justifyContent:'center',
-    alignItems:'center',
-    borderRadius:24,
-    width:'auto',
-    padding:10,
-    marginLeft:10,
-    marginTop:10,
-    flexDirection:'row',
-    marginBottom:50,
-    gap:5
+  UpdatesBtn: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 24,
+    width: 'auto',
+    padding: 10,
+    marginLeft: 10,
+    marginTop: 10,
+    flexDirection: 'row',
+    marginBottom: 50,
+    gap: 5
   },
   overlay: {
     flex: 1,
@@ -357,7 +348,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    height: height * 0.7, // adjust this to 0.25 (quarter), 0.5 (half), 0.75 (three-quarters)
+    height: height * 0.7,
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -372,7 +363,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 6,
-    alignItems:'center'
+    alignItems: 'center'
   },
   headerTitle: {
     flex: 1,
@@ -381,4 +372,4 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-})
+});

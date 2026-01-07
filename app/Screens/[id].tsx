@@ -1,156 +1,230 @@
-import { View, Text, StyleSheet, ScrollView, Image, FlatList, TextInput, Pressable, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
-import product from '../(modals)/product';
-
-const PRODUCTS = [
-  {
-    id: '1',
-    name: 'Ram DDR4',
-    desc: 'This is a DDR4 Ram for Laptops',
-    price: 'Ugx: 55,000',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6LTTZeGChJV3C_AsjiPP4xMWgcFd62QZoMKAluymAbeJtrEjz61wQgLSDyaUhwWAHUS1Bu-cWMrCxGm2fWgEvc4cA0bAih0WVVOz56UvlgGViCVeUB4GUaCFv6qrKX6VVLpUDom025mHu_0A-kUCYyYonhW4I9QjFkB___0Om2EMuzlngogbmO4P2sBsnuN-CzYsmTDcQKnjmNxxZ7aAwdJA_HnRXDwCq1uHSGgplPPE_kyj5itn6GzxQ5_u4dSyWuImVc-e62A',
-    badge: 'Used',
-  },
-  {
-    id: '2',
-    name: 'Nike Sneakers',
-    desc: 'Comfortable running shoes',
-    price: 'Ugx: 120,000',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6u3i7gM0T7-A0l0gJherzlWTsiNRvju1BfUoB4UaNsvawwFGq2xQ8xs5tsp5bueDj5yF2nzhzNYeSh8ptHflfJCNuzDEYh0aBkW-YHrO3l4DoOvRZiyms0rCS528RqoDgcMP0UlR7buy_4IvEzILHBZzluvybg4S40ZBOMMPhWFW7Aw7Xbt36pkXIv60ShLv1D3o4v0ptwamRGLYUdnIkRQCW0R0m8NYCrEfs_nomwb-JMJaIfpV2URUh-tROo7dcmVpRSPoL7w',
-    badge: 'New',
-  },
-  {
-    id: '3',
-    name: 'Nike Sneakers',
-    desc: 'Comfortable running shoes',
-    price: 'Ugx: 120,000',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6u3i7gM0T7-A0l0gJherzlWTsiNRvju1BfUoB4UaNsvawwFGq2xQ8xs5tsp5bueDj5yF2nzhzNYeSh8ptHflfJCNuzDEYh0aBkW-YHrO3l4DoOvRZiyms0rCS528RqoDgcMP0UlR7buy_4IvEzILHBZzluvybg4S40ZBOMMPhWFW7Aw7Xbt36pkXIv60ShLv1D3o4v0ptwamRGLYUdnIkRQCW0R0m8NYCrEfs_nomwb-JMJaIfpV2URUh-tROo7dcmVpRSPoL7w',
-    badge: 'New',
-  },
-  {
-    id: '4',
-    name: 'Nike Sneakers',
-    desc: 'Comfortable running shoes',
-    price: 'Ugx: 120,000',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6u3i7gM0T7-A0l0gJherzlWTsiNRvju1BfUoB4UaNsvawwFGq2xQ8xs5tsp5bueDj5yF2nzhzNYeSh8ptHflfJCNuzDEYh0aBkW-YHrO3l4DoOvRZiyms0rCS528RqoDgcMP0UlR7buy_4IvEzILHBZzluvybg4S40ZBOMMPhWFW7Aw7Xbt36pkXIv60ShLv1D3o4v0ptwamRGLYUdnIkRQCW0R0m8NYCrEfs_nomwb-JMJaIfpV2URUh-tROo7dcmVpRSPoL7w',
-    badge: 'New',
-  },
-];
+import { GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_API_URL, Product, Shop, formatPrice } from '@/types/product';
+import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ShopDetailsScreen() {
-  const { shopId } = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchShopDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Fetch all shops to find this one (since there's no single shop fetch by ID)
+      const shopRes = await fetch(GET_SHOPS_API_URL);
+      if (!shopRes.ok) throw new Error('Failed to fetch shops');
+      const allShops: Shop[] = await shopRes.json();
+      const shopData = allShops.find(s => s._id === id);
+
+      if (!shopData) {
+        throw new Error('Shop not found');
+      }
+      setShop(shopData);
+
+      // 2. Fetch products for this shop/seller
+      const prodRes = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${shopData.owner_id}`);
+      if (!prodRes.ok) throw new Error('Failed to fetch products');
+      const prodData = await prodRes.json();
+      setProducts(Array.isArray(prodData) ? prodData : []);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCall = (phone: string | undefined) => {
+    if (!phone) {
+      Alert.alert('Not Available', 'This seller has not provided a phone number.');
+      return;
+    }
+    Linking.openURL(`tel:${phone}`);
+  };
+
+  const handleEmail = (email: string | undefined) => {
+    if (!email) {
+      Alert.alert('Not Available', 'This seller has not provided an email address.');
+      return;
+    }
+    Linking.openURL(`mailto:${email}`);
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchShopDetails();
+    }
+  }, [id]);
+
   const Header = () => {
-    return(
+    if (!shop) return null;
+
+    return (
       <View>
         <Image
-          source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCT4b2CjPTo0vAD8RKRJWjO5VegPIS19u3aXtT88QGUFkoGLSoZgdSai8Uc-uwnPEP0Szb_NCbIqqcGV1rrnW_trDE9pI94PDmXXo3b9i9zW4_PBJF_ri-M2cg_RK-b7m8Qs2JjZYX4we1IQP_VlRtpI94REwBZvUWCsBF0xib_Y-D5hX1z7l_sgFUlti_gD-0sAj9A8p2cRbMGlc_9ydLjMHW0T8L4uPPWsQMDl1ReGMao8AgJRcQL7h3ITJbT7XN54jy5jChbAg' }}
+          source={{ uri: shop.cover_image || 'https://picsum.photos/600/300?blur=10' }}
           style={styles.banner}
         />
 
         <View style={styles.profile}>
           <Image
-            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxedEdyqoGn2P0t_10Ym5bFfAK4Iq2ptA2QjKY4FJmj6l_Cjf6ce4YccE04XPn6JX6Mzrbjn0w-QHoX5p29_WKl1lVaLG02m6Xqf7UoroeKZW8kdjjEuQW4U_-C5rTY9GvLQhUk8XKu45pPPuPq4FWXLqOUBB90VEIZLjGrAslJzeUU2Wr66_bRjhP-A9SyHQ34AjXe_gfUgsH3temnlCYda2uLkTEQFYjuHcignBJM7Ehtpb62OPoIm6mnOY4wPIrTd7JU4zhXA' }}
+            source={{ uri: shop.profile_image || 'https://picsum.photos/200?blur=10' }}
             style={styles.avatar}
           />
 
-          <Text style={styles.shopName}>light-electronics</Text>
-          <Text style={styles.username}>@light-electronics</Text>
+          <Text style={styles.shopName}>{shop.shop_name}</Text>
+          <Text style={styles.username}>@{shop.shop_name.toLowerCase().replace(/\s+/g, '-')}</Text>
 
           <View style={styles.badges}>
-            <Text style={styles.openBadge}>Open</Text>
-            <Text style={styles.verifiedBadge}>Verified Seller</Text>
-            {/* Rating */}
+            <Text style={shop.isOpen ? styles.openBadge : styles.closedBadge}>
+              {shop.isOpen ? 'Open' : 'Closed'}
+            </Text>
+            {shop.is_verified && <Text style={styles.verifiedBadge}>Verified Seller</Text>}
+            {/* Rating - Placeholder for now as API doesn't provide it */}
             <View style={styles.rating}>
               <Ionicons name="star" size={14} color="#f59e0b" />
               <Text style={styles.ratingText}>4.6</Text>
             </View>
           </View>
 
-          
-
           <Text style={styles.description}>
-            Premium electronics and gadgets store specializing in cutting-edge technology.
+            {shop.description}
           </Text>
+          {shop.slogan && (
+            <Text style={[styles.description, { fontStyle: 'italic', marginTop: 4 }]}>
+              "{shop.slogan}"
+            </Text>
+          )}
+
+          <View style={{ marginTop: 8, alignItems: 'center' }}>
+            {shop.phone && (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="call" size={12} color={colors.grayish} style={{ marginRight: 4 }} />
+                <Text style={{ color: colors.grayish, fontSize: 12 }}>{shop.phone}</Text>
+              </View>
+            )}
+            {shop.email && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                <Ionicons name="mail" size={12} color={colors.grayish} style={{ marginRight: 4 }} />
+                <Text style={{ color: colors.grayish, fontSize: 12 }}>{shop.email}</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
-    )
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.text, marginTop: 10 }}>Loading shop...</Text>
+      </View>
+    );
   }
 
-  return (
-    <View style={styles.container}>
-      {/* Search */}
-      {/* <View style={styles.searchBox}>
-        <MaterialIcons name="search" size={20} color="#9ca3af" />
-        <TextInput placeholder="Search products..." style={styles.searchInput} />
-      </View> */}
-
-      {/* Products */}
-      <FlatList
-        data={PRODUCTS}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        columnWrapperStyle={{ gap: 12 }}
-        contentContainerStyle={{ gap: 12, paddingBottom: 10 }}
-        ListHeaderComponent={<Header/>}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.productCard} onPress={() => router.push({ pathname: '/(modals)/product', params: { id: product.id } })} activeOpacity={0.8}>
-            <View style={styles.productImageWrapper}>
-              <Text style={styles.productBadge}>{item.badge}</Text>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-            </View>
-
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productDesc}>{item.desc}</Text>
-              <Text style={styles.productPrice}>{item.price}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-        <View style={styles.fixedContacts}>
-          <TouchableOpacity style={styles.contactBtn}>
-            <Ionicons name="call" size={18} color={colors.light} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.contactBtn}>
-            <Ionicons name="mail" size={18} color={colors.light} />
-          </TouchableOpacity>
-        </View>
-
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <ErrorView message={error} onRetry={fetchShopDetails} />
         <TouchableOpacity onPress={() => router.back()} style={[styles.contactBtn, {
           position: 'absolute',
           top: 20,
           left: 20
         }]}>
-            <Ionicons name="arrow-back" size={20} color={colors.light} />
+          <Ionicons name="arrow-back" size={20} color={colors.light} />
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Products */}
+      <FlatList
+        data={products}
+        numColumns={2}
+        keyExtractor={(item) => item._id}
+        columnWrapperStyle={{ gap: 12 }}
+        contentContainerStyle={{ gap: 12, paddingBottom: 10 }}
+        ListHeaderComponent={<Header />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.productCard}
+            onPress={() => router.push({ pathname: '/(modals)/product', params: { id: item._id } })}
+            activeOpacity={0.8}
+          >
+            <View style={styles.productImageWrapper}>
+              {item.product_condition && (
+                <Text style={styles.productBadge}>{item.product_condition}</Text>
+              )}
+              <Image source={{ uri: (Array.isArray(item.product_image) ? item.product_image[0] : item.product_image) || 'https://picsum.photos/200' }} style={styles.productImage} />
+            </View>
+
+            <View style={styles.productInfo}>
+              <Text style={styles.productName} numberOfLines={1}>{item.product_name}</Text>
+              <Text style={styles.productDesc} numberOfLines={2}>{item.product_description}</Text>
+              <Text style={styles.productPrice}>{formatPrice(item.product_price)}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ color: colors.grayish }}>No products available from this seller.</Text>
+          </View>
+        }
+      />
+      <View style={styles.fixedContacts}>
+        <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(shop?.phone)}>
+          <Ionicons name="call" size={18} color={colors.light} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(shop?.email)}>
+          <Ionicons name="mail" size={18} color={colors.light} />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity onPress={() => router.back()} style={[styles.contactBtn, {
+        position: 'absolute',
+        top: 20,
+        left: 20
+      }]}>
+        <Ionicons name="arrow-back" size={20} color={colors.light} />
+      </TouchableOpacity>
     </View>
   );
 }
 
 const appStyles = (colors: any) => StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: colors.background,
-    padding:7
+    padding: 7
   },
-  banner: { 
-    height: 160, 
-    width: '100%' 
-  
+  banner: {
+    height: 160,
+    width: '100%'
+
   },
-  profile: { 
-    alignItems: 'center', 
-    padding: 16, 
-    marginTop: -50 
+  profile: {
+    alignItems: 'center',
+    padding: 16,
+    marginTop: -50
   },
 
   avatar: {
@@ -160,66 +234,66 @@ const appStyles = (colors: any) => StyleSheet.create({
     borderWidth: 4,
     borderColor: colors.light,
   },
-  shopName: { 
-    fontSize: 22, 
-    fontWeight: '700', 
-    marginTop: 8, 
-    color:colors.primary
+  shopName: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginTop: 8,
+    color: colors.primary
   },
-  username: { 
-    color: colors.grayish, 
-    fontSize: 13 
+  username: {
+    color: colors.grayish,
+    fontSize: 13
   },
-  badges: { 
-    flexDirection: 'row', 
-    gap: 8, 
-    marginVertical: 8 
+  badges: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 8
   },
-openBadge: {
-  backgroundColor: '#dcfce7',
-  color: '#166534',
-  paddingHorizontal: 8,
-  borderRadius: 6,
-  fontSize: 12,
-},
-closedBadge: {
-  backgroundColor: '#f3f4f6',
-  color: '#374151',
-  paddingHorizontal: 8,
-  borderRadius: 6,
-  fontSize: 12,
-},
-verifiedBadge: {
-  backgroundColor: '#fef3c7',
-  color: '#92400e',
-  paddingHorizontal: 8,
-  borderRadius: 6,
-  fontSize: 12,
-},
-unverifiedBadge: {
-  backgroundColor: '#fee2e2',
-  color: '#991b1b',
-  paddingHorizontal: 8,
-  borderRadius: 6,
-  fontSize: 12,
-},
-rating: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#fffbeb', // subtle amber bg
-  paddingHorizontal: 6,
-  borderRadius: 6,
-  gap: 2,
-},
-ratingText: {
-  fontSize: 12,
-  fontWeight: '600',
-  color: '#92400e',
-},
-  description: { 
-    textAlign: 'center', 
-    color: colors.grayish, 
-    fontSize: 13 
+  openBadge: {
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    fontSize: 12,
+  },
+  closedBadge: {
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    fontSize: 12,
+  },
+  verifiedBadge: {
+    backgroundColor: '#fef3c7',
+    color: '#92400e',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    fontSize: 12,
+  },
+  unverifiedBadge: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    fontSize: 12,
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb', // subtle amber bg
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400e',
+  },
+  description: {
+    textAlign: 'center',
+    color: colors.grayish,
+    fontSize: 13
   },
   searchBox: {
     flexDirection: 'row',
@@ -229,22 +303,22 @@ ratingText: {
     borderRadius: 8,
     paddingHorizontal: 12,
   },
-  searchInput: { 
-    flex: 1, 
-    padding: 10 
+  searchInput: {
+    flex: 1,
+    padding: 10
   },
   productCard: {
     flex: 1,
     backgroundColor: colors.background,
     borderRadius: 12,
     overflow: 'hidden',
-    borderColor:colors.lightgray,
-    borderWidth:1
+    borderColor: colors.lightgray,
+    borderWidth: 1
   },
-  productImageWrapper: { 
-    position: 'relative', 
-    aspectRatio: 1 
-  
+  productImageWrapper: {
+    position: 'relative',
+    aspectRatio: 1
+
   },
   productBadge: {
     position: 'absolute',
@@ -257,52 +331,52 @@ ratingText: {
     borderRadius: 4,
     zIndex: 1,
   },
-  productImage: { 
-    width: '100%', 
-    height: '100%' 
+  productImage: {
+    width: '100%',
+    height: '100%'
   },
-  productInfo: { 
-    padding: 8 
+  productInfo: {
+    padding: 8
   },
-  productName: { 
-    fontWeight: '700', 
-    fontSize: 13, 
-    color:colors.text
+  productName: {
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.text
   },
-  productDesc: { 
-    fontSize: 11, 
-    color: colors.grayish 
+  productDesc: {
+    fontSize: 11,
+    color: colors.grayish
   },
-  productPrice: { 
-    fontWeight: '700', 
-    color: colors.primary, 
-    marginTop: 4 
+  productPrice: {
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 4
   },
-fixedContacts: {
-  position: 'absolute',
-  top: 16,
-  right: 16,
-  flexDirection: 'row',
-  gap: 8,
-  zIndex: 20,           // stays above content
-},
+  fixedContacts: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 20,           // stays above content
+  },
 
-contactBtn: {
-  backgroundColor:colors.primary,
-  width: 38,
-  height: 38,
-  borderRadius: 19,
-  justifyContent: 'center',
-  alignItems: 'center',
-  elevation: 4,         // Android shadow
-  shadowColor: '#000',  // iOS shadow
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  shadowOffset: { width: 0, height: 2 },
-},
+  contactBtn: {
+    backgroundColor: colors.primary,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,         // Android shadow
+    shadowColor: '#000',  // iOS shadow
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
 
-contactIcon: {
-  color: '#fff',
-  fontSize: 20,
-},
+  contactIcon: {
+    color: '#fff',
+    fontSize: 20,
+  },
 });

@@ -1,12 +1,13 @@
 import CategoryTile from '@/components/CategoryTile'
 import RefreshScrollView from '@/components/RefreshScrollView'
+import ErrorView from '@/components/ui/ErrorView'
 import FloatingButton from '@/components/ui/FloatingBtn'
 import { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CATEGORIES_API_URL, Category } from '@/types/product'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 import { useSearchStore } from '@/components/SearchStore'
 
@@ -54,15 +55,7 @@ const Categories = () => {
 
     if (error) {
       return (
-        <View style={{ padding: 40, alignItems: 'center' }}>
-          <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
-          <TouchableOpacity
-            onPress={fetchCategories}
-            style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
-          >
-            <Text style={{ color: colors.light }}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorView message={error} onRetry={fetchCategories} />
       );
     }
 
@@ -72,8 +65,8 @@ const Categories = () => {
           <CategoryTile
             key={idx}
             title={c.cartegory || c.title || 'No Name'}
-            image={typeof c.image === 'string' && c.image.length > 0 ? 
-              { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
+            image={typeof c.image === 'string' && c.image.length > 0 ?
+              { uri: c.image } : Array.isArray(c.image) ? { uri: c.image[0] } : (c.image ? c.image : require('@/assets/images/placeholder.png'))}
           />
         ))}
       </View>

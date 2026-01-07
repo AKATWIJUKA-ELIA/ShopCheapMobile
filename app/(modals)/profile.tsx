@@ -1,65 +1,381 @@
-import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/store/useAuthStore";
+import { UPDATE_USER_API_URL } from "@/types/product";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
-import React, { useMemo } from "react";
-import { Image, Platform, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 
 export default function UserProfile() {
-  const user = {
-    name: "Jay Oabs",
-    email: "jayoabs72@gmail.com",
-    phone: "+256 772615135",
-    address: "Bugema, Uganda",
-    avatar: "https://avatars.githubusercontent.com/u/143481214?v=4",
+  const { user, setUser } = useAuthStore();
+  const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => appStyles(colors), [colors]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [editData, setEditData] = useState({
+    username: user?.username || "",
+    phone: user?.phoneNumber || "",
+  });
+
+  const displayUser = {
+    name: user?.username || "Guest User",
+    email: user?.email || "No email provided",
+    phone: user?.phoneNumber || "Not set",
+    address: "Kampala, Uganda",
+    avatar: user?.profilePicture || "https://ui-avatars.com/api/?name=" + (user?.username || "Guest") + "&background=random",
   };
 
-  const router = useNavigation();
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    if (!editData.username.trim()) {
+      Alert.alert("Error", "Username cannot be empty");
+      return;
+    }
 
-    const {colors, theme} = useTheme();
-    const styles = useMemo(() => appStyles(colors), [colors]);
-  
+    try {
+      setLoading(true);
+
+      const payload = {
+        User: {
+          ...user,
+          username: editData.username,
+          phoneNumber: editData.phone,
+          updatedAt: Date.now(),
+        }
+      };
+
+      const res = await fetch(UPDATE_USER_API_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && (data.success || data.succes)) {
+        setUser(data.user);
+        setIsEditing(false);
+        Alert.alert("Success", "Profile updated successfully!");
+      } else {
+        Alert.alert("Error", data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Update profile error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{flexDirection:'row', alignItems:'center', padding:16}}>
-        {Platform.OS === 'android'? (
-          <TouchableOpacity onPress={() => router.goBack()} style={{backgroundColor:colors.background}}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.primary}/>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        {Platform.OS === 'android' ? (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
-        ): undefined}
-
-        <Text style={{color:colors.primary, flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700',}}>Profile</Text>
+        ) : <View style={{ width: 40 }} />}
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <View style={{ alignItems: "center", padding: 20, backgroundColor: colors.primary, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8 }}>
-        <Image
-          source={{ uri: user.avatar }}
-          style={{ width: 140, height: 140, borderRadius: 99, borderWidth: 2, borderColor: "#e5e7eb" }}
-        />
-        <Text style={{ fontSize: 22, fontWeight: "bold", marginTop: 10 }}>{user.name}</Text>
-        <Text style={{ color: colors.dark, fontSize: 16 }}>{user.email}</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Profile Card */}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{ uri: displayUser.avatar }}
+              style={styles.avatar}
+            />
+            <TouchableOpacity style={styles.editAvatarBtn}>
+              <Feather name="camera" size={16} color={colors.background} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.userName}>{displayUser.name}</Text>
+          <Text style={styles.userEmail}>{displayUser.email}</Text>
 
-      <View style={{ padding: 20 }}>
-        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 4, color:colors.text }}>Phone Number</Text>
-          <Text style={{ fontSize: 15, color: colors.primary }}>{user.phone}</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'USER'}</Text>
+          </View>
         </View>
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4 }}>
-          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 4, color:colors.text }}>Address</Text>
-          <Text style={{ fontSize: 15, color: colors.primary }}>{user.address}</Text>
-        </View>
+        {/* Info Items */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.sectionLabel}>Account Information</Text>
 
-        <TouchableOpacity style={{ marginTop: 20, paddingVertical: 12, backgroundColor: colors.primary, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-          <Feather name="edit-3" size={18} color={colors.dark} style={{ marginRight: 6 }} />
-          <Text style={{ color: colors.dark, fontWeight: "600" }}>Edit Profile</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.infoCard}>
+            <View style={styles.infoItem}>
+              <View style={styles.iconBox}>
+                <Feather name="user" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text style={styles.label}>Username</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={editData.username}
+                    onChangeText={(text) => setEditData(prev => ({ ...prev, username: text }))}
+                    placeholder="Enter username"
+                    placeholderTextColor={colors.grayish}
+                  />
+                ) : (
+                  <Text style={styles.value}>{displayUser.name}</Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoItem}>
+              <View style={styles.iconBox}>
+                <Feather name="phone" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text style={styles.label}>Phone Number</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={editData.phone}
+                    onChangeText={(text) => setEditData(prev => ({ ...prev, phone: text }))}
+                    placeholder="Enter phone number"
+                    placeholderTextColor={colors.grayish}
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text style={styles.value}>{displayUser.phone}</Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoItem}>
+              <View style={styles.iconBox}>
+                <Feather name="map-pin" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text style={styles.label}>Default Address</Text>
+                <Text style={styles.value}>{displayUser.address}</Text>
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.infoItem}>
+              <View style={styles.iconBox}>
+                <Feather name="calendar" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text style={styles.label}>Member Since</Text>
+                <Text style={styles.value}>
+                  {user?._creationTime ? new Date(user._creationTime).toLocaleDateString() : 'N/A'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {isEditing ? (
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={[styles.editBtn, { flex: 1, backgroundColor: colors.grayish + '20' }]}
+                onPress={() => setIsEditing(false)}
+                disabled={loading}
+              >
+                <Text style={[styles.editBtnText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editBtn, { flex: 2 }]}
+                onPress={handleUpdateProfile}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.background} />
+                ) : (
+                  <Text style={styles.editBtnText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.editBtn}
+              activeOpacity={0.8}
+              onPress={() => setIsEditing(true)}
+            >
+              <Feather name="edit-3" size={18} color={colors.background} style={{ marginRight: 8 }} />
+              <Text style={styles.editBtnText}>Edit Profile</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-const appStyles = (colors: any) => StyleSheet.create({});
+const appStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  profileSection: {
+    alignItems: "center",
+    padding: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: colors.primary + '20', // Transparent primary
+  },
+  editAvatarBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.primary,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  userEmail: {
+    color: colors.grayish,
+    fontSize: 16,
+    marginTop: 4,
+  },
+  roleBadge: {
+    marginTop: 12,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 99,
+  },
+  roleText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  infoContainer: {
+    padding: 20,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.grayish,
+    marginBottom: 12,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  infoCard: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.borderLine,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  infoTexts: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    color: colors.grayish,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: "700",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.borderLine,
+    marginHorizontal: 16,
+  },
+  editBtn: {
+    marginTop: 30,
+    height: 56,
+    backgroundColor: colors.primary,
+    borderRadius: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  editBtnText: {
+    color: colors.background,
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  input: {
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: "700",
+    padding: 0,
+    marginTop: 2,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 30,
+  }
+});

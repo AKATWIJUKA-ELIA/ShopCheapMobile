@@ -2,6 +2,7 @@ import Banner from '@/components/Banner'
 import CategoryTile from '@/components/CategoryTile'
 import RenderItem from '@/components/RenderItem'
 import SectionHeader from '@/components/SectionHeader'
+import ErrorView from '@/components/ui/ErrorView'
 import FloatingButton from '@/components/ui/FloatingBtn'
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
@@ -10,7 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { CATEGORIES_API_URL, Category, Product, PRODUCTS_API_URL } from '@/types/product'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 const banners = bannerImages;
 
@@ -70,9 +71,9 @@ const Home = () => {
           {categories.slice(0, 8).map((c, idx) => (
             <CategoryTile
               key={idx}
-              title={c.cartegory || c.category || c.title || 'No Name'}
+              title={c.cartegory || c.title || 'No Name'}
               image={typeof c.image === 'string' && c.image.length > 0 ?
-                { uri: c.image } : c.image ? c.image : require('@/assets/images/placeholder.png')}
+                { uri: c.image } : Array.isArray(c.image) ? { uri: c.image[0] } : (c.image ? c.image : require('@/assets/images/placeholder.png'))}
             />
           ))}
         </ScrollView>
@@ -94,35 +95,26 @@ const Home = () => {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={{ color: colors.text, marginTop: 10 }}>Loading products...</Text>
           </View>
-          <View style={{height:200, backgroundColor:colors.background}}/>
+          <View style={{ height: 200, backgroundColor: colors.background }} />
         </View>
       );
     }
 
     if (error) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-          <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
-            <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>
-            <TouchableOpacity
-              onPress={fetchData}
-              style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
-            >
-              <Text style={{ color: colors.light }}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={{height:200, backgroundColor:colors.background}}/>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, paddingVertical: 10 }}>
+          <ErrorView message={error} onRetry={fetchData} />
         </View>
       );
     }
 
     return (
-     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-       <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <View style={{ padding: 40, alignItems: 'center', backgroundColor: colors.background }}>
           <Text style={{ color: colors.text }}>No products available</Text>
         </View>
-        <View style={{height:200, backgroundColor:colors.background}}/>
-     </View>
+        <View style={{ height: 200, backgroundColor: colors.background }} />
+      </View>
     );
   };
 

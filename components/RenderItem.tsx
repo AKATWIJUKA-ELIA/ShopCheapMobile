@@ -1,10 +1,10 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useCartStore } from '@/store/useCartStore';
 import { formatPrice, Product } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { AddToCart, decrementCartItem, getCartQuantity, incrementCartItem, useCartStore } from './Operations';
 
 interface RenderItemProps {
   item: Product;
@@ -13,15 +13,17 @@ interface RenderItemProps {
 
 const RenderItem = ({ item: product }: RenderItemProps) => {
   const router = useRouter();
-  const { items } = useCartStore()
-  const qty = getCartQuantity(product._id);
+  const { items, addToCart, decrementItem, incrementItem } = useCartStore();
+  const qty = items.find(i => i.product._id === product._id)?.quantity || 0;
   const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   return (
     <TouchableOpacity style={styles.container} onPress={() => router.push({ pathname: '/(modals)/product', params: { id: product._id } })} activeOpacity={0.8}>
       <Image
-        source={(product.product_image && product.product_image !== '') ? { uri: product.product_image } : require('@/assets/images/placeholder.png')}
+        source={(product.product_image && product.product_image !== '' && (Array.isArray(product.product_image) ? product.product_image.length > 0 : true))
+          ? { uri: Array.isArray(product.product_image) ? product.product_image[0] : product.product_image }
+          : require('@/assets/images/placeholder.png')}
         style={styles.image}
         resizeMode="cover"
       />
@@ -31,16 +33,16 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
         <View style={styles.buttonContainer}>
           {qty > 0 ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(product._id)}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementItem(product._id)}>
                 <Text style={styles.qtyBtnText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.qtyText}>{qty}</Text>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(product._id)}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementItem(product._id)}>
                 <Text style={styles.qtyBtnText}>+</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={styles.cartButton} onPress={() => AddToCart(product)}>
+            <TouchableOpacity style={styles.cartButton} onPress={() => addToCart(product)}>
               <Ionicons name="cart-outline" size={16} color={colors.light} />
               <Text style={styles.buttonText}>Add to Cart</Text>
             </TouchableOpacity>

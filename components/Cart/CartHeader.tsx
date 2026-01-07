@@ -1,87 +1,100 @@
-import { Colors } from "@/constants/Colors";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Animated, Dimensions, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { PanGestureHandler } from "react-native-gesture-handler";
-import { useCartStore } from "../Operations";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useCartStore } from '@/store/useCartStore';
+import { formatPrice, GET_USER_ORDERS_API_URL, Order } from "@/types/product";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "@react-native-community/blur";
-import { formatPrice } from "@/types/product";
-
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Animated, Dimensions, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { PanGestureHandler } from "react-native-gesture-handler";
 
 
 const { height } = Dimensions.get("window");
 
-const orders = [
-  {
-    id: '1',
-    date: '2025-09-01',
-    status: 'Delivered',
-    total: 120000,
-  },
-  {
-    id: '2',
-    date: '2025-09-05',
-    status: 'Processing',
-    total: 85000,
-  },
-  {
-    id: '3',
-    date: '2025-09-08',
-    status: 'Cancelled',
-    total: 45000,
-  },
-  {
-    id: '4',
-    date: '2025-09-08',
-    status: 'Cancelled',
-    total: 45000,
-  },
-  {
-    id: '5',
-    date: '2025-09-08',
-    status: 'Cancelled',
-    total: 45000,
-  },
-  {
-    id: '6',
-    date: '2025-09-08',
-    status: 'Cancelled',
-    total: 45000,
-  },
-  {
-    id: '7',
-    date: '2025-09-08',
-    status: 'Completed',
-    total: 45000,
-  },
-];
-
 const CartHeader = ({ title = "My Cart" }) => {
   const router = useRouter();
-  const { items, total } = useCartStore();
-  const translateY = useState(new Animated.Value(height))[0];
-
-  const {colors} = useTheme();
-  const styles = useMemo(() => appStyles(colors), [colors]);
-
-
-  const renderOrder = ({ item }: any) => (
-    <TouchableOpacity style={styles.orderCard} activeOpacity={0.5}>
-      <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order #{item.id}</Text>
-        <Text style={styles.orderStatus}>{item.status}</Text>
-      </View>
-      <Text style={styles.orderDate}>Date: {item.date}</Text>
-      <Text style={styles.orderTotal}>Total: UGX {item.total.toLocaleString()}</Text>
-    </TouchableOpacity>
-  );
-
+  const { user } = useAuthStore();
+  const { total } = useCartStore();
 
   //for the bottomsheet modal
   const [visible, setVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(height));
+  const translateY = useState(new Animated.Value(height))[0];
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => appStyles(colors), [colors]);
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchOrders = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${GET_USER_ORDERS_API_URL}?userId=${user._id}`);
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`Orders Fetch Failed (${res.status}):`, text);
+        setOrders([]);
+        return;
+      }
+
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else {
+        setOrders(data.orders || []);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (visible) {
+      fetchOrders();
+    }
+  }, [visible]);
+
+
+  const renderOrder = ({ item }: { item: Order }) => (
+    <TouchableOpacity
+      style={styles.orderCard}
+      activeOpacity={0.7}
+      onPress={() => {
+        closeModal();
+        router.push({ pathname: '/Screens/order-details/[id]', params: { id: item._id } });
+      }}
+    >
+      <View style={styles.orderHeader}>
+        <Text style={styles.orderId}>Order #{item._id.slice(-6).toUpperCase()}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.order_status) + '20' }]}>
+          <Text style={[styles.orderStatus, { color: getStatusColor(item.order_status) }]}>{item.order_status.toUpperCase()}</Text>
+        </View>
+      </View>
+      <Text style={styles.orderDate}>Date: {new Date(item._creationTime).toLocaleDateString()}</Text>
+      <Text style={styles.orderTotal}>Total: {formatPrice(item.cost || 0)}</Text>
+    </TouchableOpacity>
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'delivered':
+        return '#22c55e';
+      case 'pending':
+        return '#f59e0b';
+      case 'cancelled':
+        return '#ef4444';
+      default:
+        return colors.primary;
+    }
+  };
+
+  //for the bottomsheet modal
 
   const openModal = () => {
     setVisible(true);
@@ -100,24 +113,24 @@ const CartHeader = ({ title = "My Cart" }) => {
     }).start(() => setVisible(false));
   };
 
-    const onGestureEvent = Animated.event(
-      [{ nativeEvent: { translationY: translateY } }],
-      { useNativeDriver: true }
-    );
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: translateY } }],
+    { useNativeDriver: true }
+  );
 
-      const onHandlerStateChange = ({ nativeEvent }: any) => {
-        if (nativeEvent.state === 5) {
-          // 5 = GestureHandlerState.END
-          if (nativeEvent.translationY > 150) {
-            closeModal();
-          } else {
-            Animated.spring(translateY, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-          }
-        }
-      };
+  const onHandlerStateChange = ({ nativeEvent }: any) => {
+    if (nativeEvent.state === 5) {
+      // 5 = GestureHandlerState.END
+      if (nativeEvent.translationY > 150) {
+        closeModal();
+      } else {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  };
 
   return (
     <View style={styles.header}>
@@ -146,24 +159,26 @@ const CartHeader = ({ title = "My Cart" }) => {
           blurAmount={5}
         >
           <PanGestureHandler
-              onGestureEvent={onGestureEvent}
-              onHandlerStateChange={onHandlerStateChange}
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
           >
             <Animated.View
               style={[
                 styles.bottomSheet,
-                { transform: [{ 
-                  translateY: translateY.interpolate({
+                {
+                  transform: [{
+                    translateY: translateY.interpolate({
                       inputRange: [0, height],
                       outputRange: [0, height],
                       extrapolate: "clamp",
                     }),
-                }] },
+                  }]
+                },
               ]}
             >
-              <View style={[styles.orderHeader, { marginBottom: 16, borderBottomColor: colors.primary, borderBottomWidth:1 }]}>
-                <Text style={[styles.headerTitle, {padding:10}]}>My Orders</Text>
-                <View style={{ width: 24 }} /> 
+              <View style={[styles.orderHeader, { marginBottom: 16, borderBottomColor: colors.primary, borderBottomWidth: 1 }]}>
+                <Text style={[styles.headerTitle, { padding: 10 }]}>My Orders</Text>
+                <View style={{ width: 24 }} />
               </View>
 
               <TouchableOpacity onPress={closeModal} style={{
@@ -171,18 +186,30 @@ const CartHeader = ({ title = "My Cart" }) => {
                 top: 12,
                 right: 12
               }}>
-                <Ionicons name="caret-down" size={24} color={colors.grayish}/>
+                <Ionicons name="caret-down" size={24} color={colors.grayish} />
               </TouchableOpacity>
 
 
-              <FlatList
-                data={orders}
-                keyExtractor={(item) => item.id}
-                renderItem={renderOrder}
-                contentContainerStyle={{ padding: 16 }}
-                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-                showsVerticalScrollIndicator={false}
-              />
+              {loading ? (
+                <View style={styles.center}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              ) : orders.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="receipt-outline" size={48} color={colors.grayish} />
+                  <Text style={styles.emptyTitle}>No Orders Yet</Text>
+                  <Text style={styles.emptySubtitle}>You haven't made any purchases with this account.</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={orders}
+                  keyExtractor={(item) => item._id}
+                  renderItem={renderOrder}
+                  contentContainerStyle={{ padding: 16 }}
+                  ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
               {/* <Pressable style={styles.closeButton} onPress={closeModal}>
                 <Text style={styles.closeText}>Close</Text>
               </Pressable> */}
@@ -191,7 +218,7 @@ const CartHeader = ({ title = "My Cart" }) => {
         </BlurView>
       </Modal>
 
-      
+
     </View>
   );
 };
@@ -228,7 +255,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 5,
     borderRadius: 99,
-    backgroundColor: 'red' 
+    backgroundColor: 'red'
   },
   clearText: {
     fontSize: 14,
@@ -333,9 +360,15 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: colors.dark,
   },
   orderStatus: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   orderDate: {
     fontSize: 12,
@@ -346,5 +379,28 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.gray,
-  }, 
+  },
+  center: {
+    padding: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.dark,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.grayish,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+  },
 });

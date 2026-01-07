@@ -1,7 +1,7 @@
-import { useSearchStore } from "@/components/SearchStore";
-// import { useCartStore } from "@/components/Operations";
 import SearchBar from "@/components/SearchBar"; // ✅ Your custom SearchBar
+import { useSearchStore } from "@/components/SearchStore";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useCartStore } from "@/store/useCartStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -11,8 +11,8 @@ import HelpCenter from "./ui/help";
 const HomeHeader = () => {
   const router = useRouter();
   const { query, setQuery } = useSearchStore();
-  // const { items } = useCartStore();
-  // const distinctCount = items.length;
+  const { items } = useCartStore();
+  const distinctCount = items.length;
   const [showSearch, setShowSearch] = useState(false);
   const [slideAnim] = useState(new Animated.Value(0)); // for smooth animation
 
@@ -72,7 +72,7 @@ const HomeHeader = () => {
           <Ionicons name="search" size={24} color={colors.primary} />
         </TouchableOpacity>
 
-        {/* Cart with badge (distinct products count)
+        {/* Cart with badge (distinct products count) */}
         <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.85}>
           <View>
             <Ionicons name="cart-outline" size={24} color={colors.primary} />
@@ -82,7 +82,7 @@ const HomeHeader = () => {
               </View>
             ) : null}
           </View>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
       </View>
 
       <HelpCenter />

@@ -1,9 +1,11 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthStore } from '@/store/useAuthStore';
+import { CREATE_PRODUCT_API_URL } from '@/types/product';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // const COLORS = {
 //   primary: '#f97316',
@@ -31,8 +33,11 @@ export default function AddProductScreen() {
   const [price, setPrice] = useState('');
 
   const router = useRouter();
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -43,7 +48,7 @@ export default function AddProductScreen() {
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]}>
           Add <Text style={{ color: colors.primary }}>Product</Text>
-        </Text>        
+        </Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -54,8 +59,8 @@ export default function AddProductScreen() {
           <View style={[styles.iconContainer, { backgroundColor: colors.card, borderColor: colors.lightgray }]}>
             <MaterialIcons name="inventory-2" size={28} color={colors.grayish} />
           </View>
-          <View style={{ marginLeft: 12, justifyContent:'center', alignItems:'center' }}>
-            
+          <View style={{ marginLeft: 12, justifyContent: 'center', alignItems: 'center' }}>
+
             <Text style={[styles.subtitle, { color: colors.grayish }]}>
               Fill in the details to list your product
             </Text>
@@ -108,9 +113,14 @@ export default function AddProductScreen() {
                 style={{ color: colors.text }}
               >
                 <Picker.Item label="Select" value="" />
-                <Picker.Item label="Electronics" value="electronics" />
-                <Picker.Item label="Fashion" value="fashion" />
-                <Picker.Item label="Home" value="home" />
+                <Picker.Item label="Phones" value="Phones" />
+                <Picker.Item label="Gadgets" value="Gadgets" />
+                <Picker.Item label="Shoes" value="Shoes" />
+                <Picker.Item label="Electronics" value="Electronics" />
+                <Picker.Item label="Clothing" value="Clothing" />
+                <Picker.Item label="Watches" value="Watches" />
+                <Picker.Item label="Furniture" value="Furniture" />
+                <Picker.Item label="Automotive" value="Automotive" />
               </Picker>
             </View>
           </View>
@@ -204,13 +214,59 @@ export default function AddProductScreen() {
           </View>
 
           {/* Post Button */}
-            <TouchableOpacity style={styles.postButton}>
-              <Text style={styles.postButtonText}>Post Product</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.postButton, { opacity: loading ? 0.7 : 1 }]}
+            onPress={async () => {
+              if (!user) return Alert.alert("Authentication", "Please log in to add products.");
+              if (!productName || !price || !category || !condition) {
+                return Alert.alert("Validation", "Please fill in all required fields.");
+              }
+
+              try {
+                setLoading(true);
+                const response = await fetch(CREATE_PRODUCT_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    products: {
+                      product_name: productName,
+                      product_price: price,
+                      product_description: description,
+                      product_category: category,
+                      product_condition: condition,
+                      product_image: images.length > 0 ? images : ["https://via.placeholder.com/320"],
+                      product_owner_id: user._id,
+                      approved: false, // Default to unapproved
+                      product_discount: parseFloat(discount) || 0,
+                    }
+                  }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                  Alert.alert("Success", "Product listed successfully! It will be visible after approval.");
+                  router.back();
+                } else {
+                  Alert.alert("Error", data.message || "Failed to add product");
+                }
+              } catch (error) {
+                Alert.alert("Error", "An unexpected error occurred.");
+                console.error(error);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            <Text style={styles.postButtonText}>
+              {loading ? "Posting..." : "Post Product"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      
+
     </View>
   );
 }
@@ -225,125 +281,125 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: '600' 
-},
-  iconContainer: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    borderWidth: 1, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.05, 
-    shadowRadius: 4 
-},
-  title: { 
-    fontSize: 20, 
-    fontWeight: '700' 
-},
-  subtitle: { 
-    fontSize: 12, 
-    marginTop: 2 
-},
-  label: { 
-    fontSize: 14, 
-    fontWeight: '500', 
-    marginBottom: 4 
-},
-  input: { 
-    padding: 12, 
-    borderWidth: 1, 
-    borderRadius: 12, 
-    fontSize: 14 
-},
-  textArea: { 
-    height: 100, 
-    textAlignVertical: 'top' 
-},
-  selectContainer: { 
-    borderWidth: 1, 
-    borderRadius: 12, 
-    overflow: 'hidden' 
-},
-  discountInputContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderRadius: 12, 
-    paddingHorizontal: 12, 
-    height: 48, 
-    justifyContent: 'space-between' 
-},
-  discountInput: { 
-    flex: 1, 
-    height: '100%', 
-    fontSize: 14 
-},
-  priceInputContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderRadius: 12, 
-    height: 48 
-},
-  priceInput: { 
-    flex: 1, 
-    height: '100%', 
-    fontSize: 14, 
-    paddingHorizontal: 8 
-},
-  imageDropZone: { 
-    borderWidth: 2, 
-    borderRadius: 16, 
-    padding: 24, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginTop: 12 
-},
-  imageIcon: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 24, 
-    backgroundColor: '#e5e7eb', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginBottom: 12 
-},
-  smallText: { 
-    fontSize: 12 
-},
-  bottomBar: { 
-    position: 'absolute', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    padding: 16, 
-    borderTopWidth: 1 
-},
-  postButton: { 
-    backgroundColor: colors.primary, 
-    paddingVertical: 16, 
-    borderRadius: 16, 
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600'
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop:12 
-},
-  postButtonText: { 
-    color: colors.text, 
-    fontWeight: '600', 
-    fontSize: 16 
-},
-  darkModeButton: { 
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700'
+  },
+  subtitle: {
+    fontSize: 12,
+    marginTop: 2
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4
+  },
+  input: {
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    fontSize: 14
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top'
+  },
+  selectContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: 'hidden'
+  },
+  discountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+    justifyContent: 'space-between'
+  },
+  discountInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 14
+  },
+  priceInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    height: 48
+  },
+  priceInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 14,
+    paddingHorizontal: 8
+  },
+  imageDropZone: {
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12
+  },
+  imageIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e5e7eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12
+  },
+  smallText: {
+    fontSize: 12
+  },
+  bottomBar: {
     position: 'absolute',
-    bottom: 96, 
-    right: 16, 
-    width: 48, 
-    height: 48, 
-    borderRadius: 24, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    borderWidth: 1 
-},
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    borderTopWidth: 1
+  },
+  postButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 12
+  },
+  postButtonText: {
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 16
+  },
+  darkModeButton: {
+    position: 'absolute',
+    bottom: 96,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1
+  },
 });

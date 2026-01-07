@@ -1,27 +1,42 @@
-import { confirmClearCart, decrementCartItem, incrementCartItem, removeFromCart, useCartStore } from '@/components/Operations'
 import RefreshScrollView from '@/components/RefreshScrollView'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useCartStore } from '@/store/useCartStore'
 import { formatPrice } from '@/types/product'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useMemo } from 'react'
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 const Cart = () => {
-  const { items, total } = useCartStore()
+  const { items, total, incrementItem, decrementItem, removeFromCart, clearCart, fetchCart } = useCartStore()
   const isEmpty = items.length === 0;
   const router = useRouter();
+
+  const confirmClearCart = () => {
+    Alert.alert(
+      "Clear Cart",
+      "Are you sure you want to remove all items from your cart?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Clear", style: "destructive", onPress: clearCart }
+      ]
+    );
+  };
 
   const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   if (isEmpty) {
     return (
-      <RefreshScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1 }}>
+      <RefreshScrollView
+        refreshFn={fetchCart}
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         <View style={styles.containerCenter}>
           <View style={styles.illustration}>
-            <MaterialIcons name='remove-shopping-cart' size={100} color={Colors.gray} />
+            <MaterialIcons name='remove-shopping-cart' size={100} color={Colors.grayish} />
             {/* <Image source={require('@/assets/images/icon.png')}
               style={{width:150, height:150}}
               resizeMode='cover'
@@ -39,21 +54,21 @@ const Cart = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <RefreshScrollView style={styles.container}>
+      <RefreshScrollView refreshFn={fetchCart} style={styles.container}>
         {/* <Text style={styles.title}>Your Cart</Text> */}
         <View style={{ height: 12 }} />
         {items.map(ci => (
           <View key={ci.product._id} style={styles.itemRow}>
-            <Image source={{ uri: ci.product.product_image }} style={styles.itemImage} resizeMode="cover" />
+            <Image source={{ uri: Array.isArray(ci.product.product_image) ? ci.product.product_image[0] : ci.product.product_image }} style={styles.itemImage} resizeMode="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.itemTitle} numberOfLines={2}>{ci.product.product_name}</Text>
               <Text style={styles.itemPrice}>{formatPrice(parseFloat(ci.product.product_price) * ci.quantity)}</Text>
               <View style={styles.qtyRow}>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(ci.product._id)}>
+                <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementItem(ci.product._id)}>
                   <Text style={styles.qtyBtnText}>-</Text>
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{ci.quantity}</Text>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(ci.product._id)}>
+                <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementItem(ci.product._id)}>
                   <Text style={styles.qtyBtnText}>+</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.removeBtn} onPress={() => removeFromCart(ci.product._id)}>

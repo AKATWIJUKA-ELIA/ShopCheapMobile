@@ -1,5 +1,7 @@
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useCartStore } from '@/store/useCartStore'
 import { AUTH_API_URL } from '@/types/product'
 import { AntDesign, Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
@@ -18,6 +20,8 @@ export default function Login() {
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev); // 👈 Toggle handler
 
+  const { setUser } = useAuthStore();
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
@@ -34,11 +38,15 @@ export default function Login() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         // Success
+        setUser(data.user);
+
+        // Fetch cart from backend after login success
+        const { fetchCart } = useCartStore.getState();
+        await fetchCart();
+
         Alert.alert('Success', 'Login successful!');
-        // Here you would typically save the user session/token
-        // For now, just navigate to home
         router.replace('/(tabs)/home');
       } else {
         // Error from API

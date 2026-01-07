@@ -1,92 +1,107 @@
-import React, { useMemo } from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Image, FlatList, SafeAreaView} from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthStore } from '@/store/useAuthStore';
+import { formatPrice, GET_PRODUCTS_BY_SELLER_API_URL, Product } from '@/types/product';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useTheme } from '@/contexts/ThemeContext';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ErrorView from '../ui/ErrorView';
 
-const PRODUCTS = [
-  {
-    id: '1',
-    name: 'Nike Air Max Red',
-    category: 'Shoes & Sneakers',
-    price: '$129.00',
-    time: '2h ago',
-    condition: 'New Condition',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAxv86kLfqr1zrk33Ymo7s8GvjS_1JjHL88EA9MaV9N_oDuitIzHUQn0UAey_vVkY1gjYCrwh1L-RhFFLFuMUO-9RIXuR-BdsRZqbZaPP1vUId7CClTc-DNV-YoaljZJ1J-uYyA7r8pgyvRexMM9gW3mxeoXDLK1FQSpMs4ZGprQm375VkAzehJutoG0EHSXR8cHRVIXecBFn6jivwRZxqPHBPBCgByj7aRSq5T5eKTC2ftPpil_gQpe6ZJG1Eyz-9tIL14WbFwkg',
-  },
-  {
-    id: '2',
-    name: 'Minimalist Wrist Watch',
-    category: 'Accessories',
-    price: '$45.50',
-    time: '1d ago',
-    condition: 'Used - Good',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDsknA6pxX48FyKS-4C5sy_Ii1yCJTdIvhFd4Yn2uP6PyjcUBDQ57nXUpnW2JOOmLCZa3p4R-Csrk5RG1mPkC0M2jgKV-hbickvSuCNdYnGKfmzhnxPsPvbDrejWVgBd94Pa99dwel82eWklD1hD2iAF8ykeXy3-TLwlkaXm9RXCPY6DNre9xvsSLq_RJpgQV89bhJMkLVN2SGAxF-uZDPvarpY93zl8vgH0mjtxItyXyLEX_PFSoX4tg93YuHy2ucQkZMIypZxGg',
-  },
-];
 
 export default function ApprovedProductsScreen() {
   const router = useRouter();
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const { user } = useAuthStore();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProducts = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${user._id}`);
+      if (!res.ok) throw new Error("Failed to fetch products");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setProducts(data.filter(p => p.approved));
+      }
+    } catch (error) {
+      console.error("Error fetching approved products:", error);
+      setError("Unable to load approved products.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProducts();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* CONTENT */}
-      <FlatList
-        contentContainerStyle={styles.content}
-        data={PRODUCTS}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={
-          <>
-            {/* <Text style={styles.title}>Approved Products</Text> */}
-
-            {/* ACTION BUTTONS */}
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.boostBtn}>
-                <MaterialIcons name="rocket-launch" size={18} color="#047857" />
-                <Text style={styles.boostText}>Boost Selected</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.deleteBtn}>
-                <MaterialIcons name="delete" size={18} color="#B91C1C" />
-                <Text style={styles.deleteText}>Delete Selected</Text>
-              </TouchableOpacity>
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+      ) : error ? (
+        <ErrorView message={error} onRetry={fetchProducts} />
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.content}
+          data={products}
+          keyExtractor={(item) => item._id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', marginTop: 40 }}>
+              <Text style={{ color: colors.grayish }}>No approved products found.</Text>
             </View>
-          </>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.8}
+              onPress={() => router.push({ pathname: '/(modals)/product', params: { id: item._id } })}
+            >
+              {item.product_image && item.product_image[0] ? (
+                <Image source={{ uri: item.product_image[0] }} style={styles.image} />
+              ) : (
+                <View style={[styles.image, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                  <MaterialIcons name="image" size={30} color={colors.grayish} />
+                </View>
+              )}
 
-            <View style={styles.cardContent}>
-              <View style={styles.cardTop}>
-                <Text style={styles.productName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {/* <MaterialIcons name="more-vert" size={20} color="#9CA3AF" /> */}
-              </View>
+              <View style={styles.cardContent}>
+                <View style={styles.cardTop}>
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {item.product_name}
+                  </Text>
+                </View>
 
-              <Text style={styles.category}>{item.category}</Text>
+                <Text style={styles.category}>{item.product_category}</Text>
 
-              <View style={styles.badges}>
-                <Text style={styles.approvedBadge}>Approved</Text>
-                <Text style={styles.conditionBadge}>{item.condition}</Text>
-              </View>
+                <View style={styles.badges}>
+                  <Text style={styles.approvedBadge}>Approved</Text>
+                  <Text style={styles.conditionBadge}>{item.product_condition}</Text>
+                </View>
 
-              <View style={styles.cardBottom}>
-                <Text style={styles.price}>{item.price}</Text>
-                <View style={styles.time}>
-                  <MaterialIcons name="schedule" size={12} color="#9CA3AF" />
-                  <Text style={styles.timeText}>{item.time}</Text>
+                <View style={styles.cardBottom}>
+                  <Text style={styles.price}>{formatPrice(item.product_price)}</Text>
                 </View>
               </View>
-            </View>
-          </View>
-        )}
-      />
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -142,7 +157,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor:colors.card,
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 10,
     marginBottom: 12,
@@ -172,7 +187,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   category: {
     fontSize: 12,
-    color:colors.grayish,
+    color: colors.grayish,
   },
   badges: {
     flexDirection: 'row',

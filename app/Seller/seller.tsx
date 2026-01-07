@@ -1,16 +1,36 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { useAuthStore } from '@/store/useAuthStore';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useRef } from 'react';
-import {ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated} from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SellerLanding() {
-  const {colors, theme} = useTheme();
+  const { colors, theme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  const [checkingSeller, setCheckingSeller] = useState(true);
+  const [isSeller, setIsSeller] = useState(false);
+
+  useEffect(() => {
+    // Check if user is seller by checking their role or querying API
+    if (isAuthenticated && user?.role === 'seller') {
+      setIsSeller(true);
+    }
+    setCheckingSeller(false);
+  }, [isAuthenticated, user]);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const targetRef = useRef<View>(null);
+
+  if (checkingSeller) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const GoToLearnMore = () => {
     targetRef.current?.measureLayout(
@@ -59,15 +79,17 @@ export default function SellerLanding() {
           costs, powerful tools, and dedicated seller support.
         </Text>
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/register')}>
-          <Ionicons name="add-circle-outline" size={20} color={colors.light} />
-          <Text style={styles.primaryBtnText}>Start Selling Today</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/(SellerDashboard)')}>
-          <Ionicons name="add-circle-outline" size={20} color={colors.light} />
-          <Text style={styles.primaryBtnText}>Seller</Text>
-        </TouchableOpacity>
+        {isSeller ? (
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/(SellerDashboard)')}>
+            <Ionicons name="speedometer-outline" size={20} color={colors.light} />
+            <Text style={styles.primaryBtnText}>Go to Dashboard</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/register')}>
+            <Ionicons name="add-circle-outline" size={20} color={colors.light} />
+            <Text style={styles.primaryBtnText}>Start Selling Today</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.secondaryBtn} onPress={GoToLearnMore}>
           <Text style={styles.secondaryBtnText}>Learn More</Text>
@@ -91,7 +113,7 @@ export default function SellerLanding() {
 
       {/* ================= WHY SELL ================= */}
       <View style={styles.section}>
-        <View style={{justifyContent:'center', alignItems:'center'}}>
+        <View style={{ justifyContent: 'center', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>
             Why Sell on{' '}
             <Text style={{ color: colors.primary }}>ShopCheap?</Text>
@@ -129,7 +151,7 @@ export default function SellerLanding() {
           <Text style={{ color: colors.primary }}>4 Easy Steps</Text>
         </Text>
 
-        {[ 
+        {[
           ['Create Account', 'Sign up & complete profile'],
           ['Set Up Store', 'Customize your storefront'],
           ['List Products', 'Upload products & pricing'],
@@ -172,8 +194,13 @@ export default function SellerLanding() {
             5% <Text style={styles.pricingSmall}>per sale</Text>
           </Text>
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/Seller/register')}>
-            <Text style={styles.primaryBtnText}>Get Started Free</Text>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => router.push(isSeller ? '/Seller/(SellerDashboard)' : '/Seller/register')}
+          >
+            <Text style={styles.primaryBtnText}>
+              {isSeller ? "Go to Dashboard" : "Get Started Free"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -302,7 +329,7 @@ const appStyles = (colors: any) =>
       fontWeight: '800',
       color: colors.text,
       marginBottom: 8,
-      textAlign:'center'
+      textAlign: 'center'
     },
     sectionSub: {
       color: colors.grayish,
@@ -313,7 +340,7 @@ const appStyles = (colors: any) =>
       flexWrap: 'wrap',
       justifyContent: 'space-between', // spreads cards evenly
       marginHorizontal: -8, // optional: adjust spacing
-      margin:10
+      margin: 10
     },
     infoCard: {
       backgroundColor: colors.card,
@@ -322,9 +349,9 @@ const appStyles = (colors: any) =>
       marginBottom: 12,
       borderWidth: 1,
       borderColor: colors.borderLine,
-      justifyContent:'center',
-      alignItems:'center',
-      width:'48%'
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '48%'
     },
     iconCircle: {
       width: 40,
@@ -339,14 +366,14 @@ const appStyles = (colors: any) =>
       fontWeight: '700',
       color: colors.text,
       marginBottom: 4,
-      textAlign:'center',
-      justifyContent:'center'
+      textAlign: 'center',
+      justifyContent: 'center'
     },
     cardDesc: {
       fontSize: 12,
       color: colors.grayish,
-      textAlign:'center',
-      justifyContent:'center'
+      textAlign: 'center',
+      justifyContent: 'center'
     },
 
     stepRow: {
@@ -394,7 +421,7 @@ const appStyles = (colors: any) =>
     },
 
     pricingCard: {
-      backgroundColor:colors.gray,
+      backgroundColor: colors.gray,
       padding: 24,
       borderRadius: 28,
       marginTop: 16,
@@ -417,7 +444,7 @@ const appStyles = (colors: any) =>
 
     cta: {
       padding: 24,
-      backgroundColor:colors.gray,
+      backgroundColor: colors.gray,
       borderTopLeftRadius: 48,
       borderTopRightRadius: 48,
       alignItems: 'center',

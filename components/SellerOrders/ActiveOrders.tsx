@@ -1,92 +1,91 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import OrderDetailsBottomSheet, {OrderDetailsBottomSheetRef, OrderDetails} from "../OrderDetailsBottomSheetView";
+import { useAuthStore } from '@/store/useAuthStore';
+import { formatPrice, GET_ORDERS_BY_SELLER_API_URL } from '@/types/product';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import OrderDetailsBottomSheet, { OrderDetails, OrderDetailsBottomSheetRef } from "../OrderDetailsBottomSheetView";
 
-const PRIMARY = '#f97316';
-const SURFACE = '#ffffff';
-const BORDER = '#e5e7eb';
-const TEXT = '#111827';
-const MUTED = '#6b7280';
-
-const activeOrders: OrderDetails[] = [
-  {
-    id: '#SC1021',
-    customer: 'John Doe',
-    status: 'Active',
-    total: '$249.00',
-    date: 'Oct 25, 2023',
-    items: [
-      { id: '1', name: 'Nike Sneakers', quantity: 1, price: '$120.00' },
-      { id: '2', name: 'Wireless Headphones', quantity: 1, price: '$129.00' },
-    ],
-  },
-  {
-    id: '#SC1020',
-    customer: 'Sarah Kim',
-    status: 'Completed',
-    total: '$129.99',
-    date: 'Oct 22, 2023',
-    items: [
-      { id: '1', name: 'Minimalist Watch', quantity: 1, price: '$85.50' },
-      { id: '2', name: 'Leather Wallet', quantity: 1, price: '$44.49' },
-    ],
-  },
-  {
-    id: '#SC1019',
-    customer: 'Mike Brown',
-    status: 'Cancelled',
-    total: '$89.00',
-    date: 'Oct 20, 2023',
-    items: [
-      { id: '1', name: 'T-Shirt', quantity: 2, price: '$50.00' },
-      { id: '2', name: 'Socks', quantity: 1, price: '$39.00' },
-    ],
-  },
-  {
-    id: '#SC1018',
-    customer: 'Emily White',
-    status: 'Active',
-    total: '$320.50',
-    date: 'Oct 18, 2023',
-    items: [
-      { id: '1', name: 'Backpack', quantity: 1, price: '$120.00' },
-      { id: '2', name: 'Running Shoes', quantity: 1, price: '$200.50' },
-    ],
-  },
-  {
-    id: '#SC1017',
-    customer: 'David Lee',
-    status: 'Completed',
-    total: '$410.00',
-    date: 'Oct 15, 2023',
-    items: [
-      { id: '1', name: 'Bluetooth Speaker', quantity: 1, price: '$150.00' },
-      { id: '2', name: 'Smartwatch', quantity: 1, price: '$260.00' },
-    ],
-  },
-];
 
 export default function ActiveOrders() {
-  const router = useRouter();
-  const {colors, toggleTheme} = useTheme();
+  const { colors } = useTheme();
+  const { user } = useAuthStore();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const bottomSheetRef = useRef<OrderDetailsBottomSheetRef>(null);
 
+  const [orders, setOrders] = useState<OrderDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchOrders = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${GET_ORDERS_BY_SELLER_API_URL}?sellerId=${user._id}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const activeStatuses = ['pending', 'confirmed', 'out-for-delivery'];
+        const mapped: OrderDetails[] = data
+          .filter(o => activeStatuses.includes(o.order_status.toLowerCase()))
+          .map(o => ({
+            id: o._id.slice(-6).toUpperCase(),
+            customer: `Customer ${o.user_id.slice(-4)}`,
+            status: o.order_status,
+            total: formatPrice(o.cost || 0),
+            date: new Date(o._creationTime).toLocaleDateString(),
+            items: [
+              {
+                id: o.product?._id || o.product_id,
+                name: o.product?.product_name || "Unknown Product",
+                quantity: o.quantity,
+                price: formatPrice((o.cost || 0) / (o.quantity || 1))
+              }
+            ]
+          }));
+        setOrders(mapped);
+      }
+    } catch (error) {
+      console.error("Error fetching active seller orders:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [user]);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={{flex:1, backgroundColor:colors.background}}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList
-        data={activeOrders}
+        data={orders}
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOrders(); }} tintColor={colors.primary} />
+        }
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', marginTop: 40 }}>
+            <Text style={{ color: colors.grayish }}>No active orders.</Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card}
-             onPress={() => bottomSheetRef.current?.open(item)}
+            onPress={() => bottomSheetRef.current?.open(item)}
           >
             <View style={styles.row}>
-              <Text style={styles.orderId}>{item.id}</Text>
-              <Text style={styles.badge}>Active</Text>
+              <Text style={styles.orderId}>#{item.id}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status, colors) + '22' }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(item.status, colors) }]}>{item.status}</Text>
+              </View>
             </View>
 
             <Text style={styles.customer}>{item.customer}</Text>
@@ -99,11 +98,19 @@ export default function ActiveOrders() {
         )}
       />
 
-       {/* ✅ Reusable BottomSheet */}
       <OrderDetailsBottomSheet ref={bottomSheetRef} />
     </View>
   );
 }
+
+const getStatusColor = (status: string, colors: any) => {
+  switch (status.toLowerCase()) {
+    case 'pending': return '#F59E0B'; // Amber
+    case 'confirmed': return '#3B82F6'; // Blue
+    case 'out-for-delivery': return '#8B5CF6'; // Violet
+    default: return colors.primary;
+  }
+};
 
 const appStyles = (colors: any) => StyleSheet.create({
   card: {
@@ -141,5 +148,15 @@ const appStyles = (colors: any) => StyleSheet.create({
   date: {
     fontSize: 11,
     color: colors.grayish,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });

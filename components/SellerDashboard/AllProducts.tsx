@@ -1,18 +1,64 @@
-import React, { useMemo } from "react";
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image} from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Colors } from "@/constants/Colors";
-import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/store/useAuthStore";
+import { formatPrice, GET_PRODUCTS_BY_SELLER_API_URL, Product } from "@/types/product";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import ErrorView from "../ui/ErrorView";
 
 export default function AllProductsScreen() {
   const router = useRouter();
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const { user } = useAuthStore();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchProducts = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${user._id}`);
+      if (!res.ok) throw new Error("Failed to fetch products");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching seller products:", error);
+      setError("Unable to load products. Please check your connection.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProducts();
+  };
+
+  const filteredProducts = products.filter(p =>
+    p.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.product_category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+      >
         {/* Search */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
@@ -21,133 +67,103 @@ export default function AllProductsScreen() {
               placeholder="Search products..."
               placeholderTextColor={colors.grayish}
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
-            <MaterialIcons name="filter-list" size={24} color={colors.light} />
-          </TouchableOpacity>
         </View>
 
-        {/* Products */}
-        {products.map((p) => (
-          <View key={p.id} style={styles.productCard}>
-            {/* Left: Checkbox + Image */}
-            <View style={styles.productLeft}>
-              {/* <View style={styles.checkbox} /> */}
-              {p.image ? (
-                <Image source={{ uri: p.image }} style={styles.image} />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <MaterialIcons name="image" size={22} color={colors.grayish}/>
-                </View>
-              )}
-            </View>
-
-            {/* Right: Product Info */}
-            <View style={styles.productInfo}>
-              {/* Top Row: Name, Category, Status */}
-              <View style={styles.productTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.productName} numberOfLines={1}>
-                    {p.name}
-                  </Text>
-                  <Text style={styles.category}>{p.category}</Text>
-                </View>
-                <View style={[styles.statusBadge, p.statusStyle]}>
-                  <Text style={[styles.statusText, p.statusTextStyle]}>{p.status}</Text>
-                </View>
+        {/* Loading/Error States */}
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+        ) : error ? (
+          <ErrorView message={error} onRetry={fetchProducts} />
+        ) : (
+          <>
+            {/* Products */}
+            {filteredProducts.length === 0 ? (
+              <View style={{ alignItems: 'center', marginTop: 40 }}>
+                <Text style={{ color: colors.grayish }}>No products found.</Text>
               </View>
+            ) : (
+              filteredProducts.map((p) => (
+                <View key={p._id} style={styles.productCard}>
+                  {/* Left: Product Image */}
+                  <View style={styles.productLeft}>
+                    {p.product_image && p.product_image[0] ? (
+                      <Image source={{ uri: p.product_image[0] }} style={styles.image} />
+                    ) : (
+                      <View style={styles.imagePlaceholder}>
+                        <MaterialIcons name="image" size={22} color={colors.grayish} />
+                      </View>
+                    )}
+                  </View>
 
-              {/* Middle Row: Condition + Date Created */}
-              <View style={styles.middleRow}>
-                <Text style={styles.conditionText}>Condition: {p.condition || "N/A"}</Text>
-                <Text style={styles.dateText}>Created: {p.dateCreated || "N/A"}</Text>
-              </View>
+                  {/* Right: Product Info */}
+                  <View style={styles.productInfo}>
+                    <View style={styles.productTop}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.productName} numberOfLines={1}>
+                          {p.product_name}
+                        </Text>
+                        <Text style={styles.category}>{p.product_category}</Text>
+                      </View>
+                      <View style={[
+                        styles.statusBadge,
+                        { backgroundColor: p.approved ? "#DCFCE7" : "#FEF3C7" }
+                      ]}>
+                        <Text style={[
+                          styles.statusText,
+                          { color: p.approved ? "#15803D" : "#B45309" }
+                        ]}>
+                          {p.approved ? "Approved" : "Pending"}
+                        </Text>
+                      </View>
+                    </View>
 
-              {/* Bottom Row: Price + Actions */}
-              <View style={styles.productBottom}>
-                <Text style={styles.price}>{p.price}</Text>
-                <View style={styles.actions}>
-                  <TouchableOpacity style={styles.actionBtn}>
-                    <MaterialIcons name="visibility" size={18} color={colors.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.editBtn}>
-                    <MaterialIcons name="edit" size={18} color="#F97316" />
-                  </TouchableOpacity>
+                    <View style={styles.middleRow}>
+                      <Text style={styles.conditionText}>Condition: {p.product_condition}</Text>
+                    </View>
+
+                    <View style={styles.productBottom}>
+                      <Text style={styles.price}>{formatPrice(p.product_price)}</Text>
+                      <View style={styles.actions}>
+                        <TouchableOpacity
+                          style={styles.actionBtn}
+                          onPress={() => router.push({ pathname: '/(modals)/product', params: { id: p._id } })}
+                        >
+                          <MaterialIcons name="visibility" size={18} color={colors.text} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
-          </View>
-        ))}
-        <Text style={styles.footerText}>Showing 4 of 28 products</Text>
+              ))
+            )}
+            <Text style={styles.footerText}>Showing {filteredProducts.length} products</Text>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-/* ---------------- DATA ---------------- */
-
-const products = [
-  {
-    id: "1",
-    name: "Nike Air Max Red",
-    category: "Sneakers",
-    price: "$120.00",
-    status: "Approved",
-    statusStyle: { backgroundColor: "#DCFCE7" },
-    statusTextStyle: { color: "#15803D" },
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBIUSHjFJmVZTV0d64vSxSaI5lbrTMd9tbY3g6nVLpFRldfNCDIgkOsE5runA92j9u1gmzzYG482RtwFwRjdaTTCXvGMTq2BS2pTEDzS6brzB0oVjHmIQeaZYH-C8dIDT6OqHONcRh2T3tMnsgq6aEJi-rVoQCtrqyfr7rGgP_niXrKOccy9-R0wLSVrjsCOq-77aYnl3_Pe9ulycSCn6IxuUOOLetsuwkgF-__HX2BC66fZYnHtLDjY7C9O_9HgnnFvDUVtq4Qhg",
-  },
-  {
-    id: "2",
-    name: "Minimalist Watch",
-    category: "Accessories",
-    price: "$85.50",
-    status: "Pending",
-    statusStyle: { backgroundColor: "#FEF3C7" },
-    statusTextStyle: { color: "#B45309" },
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBwO1YgyMeyEn9whmurYmPEDzlmRbj3p0nO7a9iapKGkwi7vShm_ei5x_rNxkZtmqrhjA1KmNPei0Q9dAuuKQwZmg5h0g566hyU7E9NKD4wir2KmH5O1HTX168kvRV7UQMOza_1X-uxqeWUT7vbK64GqQvOCrL7t5JYpRmCxIG7jf5e1WQ9OJXXf-FCOD-P9ZKUCy91azCzbROkVuaU7qz_CAOSrJB1bSZ1c1WR8TQHpbkzTBIVOrmW-AYYF_bqEHdcU3yF0oUPAA",
-  },
-  {
-    id: "3",
-    name: "Sony Headphones",
-    category: "Electronics",
-    price: "$299.00",
-    status: "Rejected",
-    statusStyle: { backgroundColor: "#FEE2E2" },
-    statusTextStyle: { color: "#B91C1C" },
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCvh5AhxMLvTGYZaXZ5uIn25INtKBlnZjwrSo-BkKyehP3i7gqLw05KBqdAZ1bzLw8g8Qi0Sm-LfBVfCnjGKRaMG1Yaop3ak_SIVMn6kYUZK2M8h8_goP2DMjMfQIeSWOtw21C1mT5xNOWqwm3hIpQcIqyzxT9tvJxPajI6zi_a5TAPXR0-IPLssXackJg2KeUCGdDnb9VAiFmcfgngNjr7-z2ga_9GNyov9_zPEXnUml9vImkfTtg6dGzH_ej6JxamKwgvd98UaQ",
-  },
-  {
-    id: "4",
-    name: "Vintage Denim Jacket",
-    category: "Clothing",
-    price: "$55.00",
-    status: "Approved",
-    statusStyle: { backgroundColor: "#DCFCE7" },
-    statusTextStyle: { color: "#15803D" },
-    image: null,
-  },
-];
 
 /* ---------------- STYLES ---------------- */
 
 const appStyles = (colors: any) => StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.background 
+  container: {
+    flex: 1,
+    backgroundColor: colors.background
   },
-  content: { 
-    padding: 16, 
-    backgroundColor: colors.background 
-},
-  searchRow: { 
-    flexDirection: "row", 
-    marginBottom: 12 
-},
+  content: {
+    padding: 16,
+    backgroundColor: colors.background
+  },
+  searchRow: {
+    flexDirection: "row",
+    marginBottom: 12
+  },
   searchBox: {
     flex: 1,
     flexDirection: "row",
@@ -156,15 +172,15 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
     marginRight: 8,
-    borderColor:colors.lightgray,
-    borderWidth:1
+    borderColor: colors.lightgray,
+    borderWidth: 1
   },
-  searchInput: { 
-    flex: 1, 
-    fontSize: 14, 
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
     marginLeft: 6,
-    color:colors.text 
-},
+    color: colors.text
+  },
   filterBtn: {
     backgroundColor: colors.primary,
     padding: 8,
@@ -180,10 +196,10 @@ const appStyles = (colors: any) => StyleSheet.create({
     marginBottom: 10,
     flexDirection: "row",
   },
-  productLeft: { 
-    alignItems: "center", 
-    marginRight: 10 
-},
+  productLeft: {
+    alignItems: "center",
+    marginRight: 10
+  },
   checkbox: {
     width: 18,
     height: 18,
@@ -193,11 +209,11 @@ const appStyles = (colors: any) => StyleSheet.create({
     marginBottom: 6,
   },
 
-  image: { 
-    width: 64, 
-    height: 64, 
-    borderRadius: 8 
-},
+  image: {
+    width: 64,
+    height: 64,
+    borderRadius: 8
+  },
   imagePlaceholder: {
     width: 64,
     height: 64,
@@ -207,30 +223,30 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: "center",
   },
 
-  productInfo: { 
-    flex: 1 
-},
-  productTop: { 
-    flexDirection: "row", 
-    justifyContent: "space-between" 
-},
-  productName: { 
-    fontSize: 14, 
-    fontWeight: "600" ,
-    color:colors.text
-},
-  category: { 
-    fontSize: 12, 
-    color: colors.grayish 
+  productInfo: {
+    flex: 1
+  },
+  productTop: {
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text
+  },
+  category: {
+    fontSize: 12,
+    color: colors.grayish
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
   },
-  statusText: { 
-    fontSize: 10, 
-    fontWeight: "600" 
+  statusText: {
+    fontSize: 10,
+    fontWeight: "600"
   },
   productBottom: {
     marginTop: 10,
@@ -238,17 +254,17 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
-  priceLabel: { 
-    fontSize: 11, 
-    color: colors.grayish 
-},
-  price: { 
-    fontSize: 16, 
-    fontWeight: "700", 
-    color: colors.text 
-},
-  actions: { 
-    flexDirection: "row" 
+  priceLabel: {
+    fontSize: 11,
+    color: colors.grayish
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text
+  },
+  actions: {
+    flexDirection: "row"
   },
   actionBtn: {
     backgroundColor: colors.background,
@@ -269,17 +285,17 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: colors.grayish,
   },
   middleRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginTop: 6,
-  marginBottom: 8,
-},
-conditionText: {
-  fontSize: 11,
-  color: colors.grayish,
-},
-dateText: {
-  fontSize: 11,
-  color: colors.grayish,
-},
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  conditionText: {
+    fontSize: 11,
+    color: colors.grayish,
+  },
+  dateText: {
+    fontSize: 11,
+    color: colors.grayish,
+  },
 });

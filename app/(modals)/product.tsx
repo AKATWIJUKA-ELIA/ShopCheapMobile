@@ -1,47 +1,106 @@
-import CategoryTile from '@/components/CategoryTile'
-import { AddToCart, decrementCartItem, getCartQuantity, incrementCartItem, useCartStore } from '@/components/Operations'
-import { triggerShare } from '@/components/Share'
-import { categories } from '@/constants/data'
-import { useTheme } from '@/contexts/ThemeContext'
-import { formatPrice, Product, PRODUCTS_API_URL } from '@/types/product'
-import { Entypo, FontAwesome, Ionicons } from '@expo/vector-icons'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { triggerShare } from '@/components/Share';
+import ErrorView from '@/components/ui/ErrorView';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useCartStore } from '@/store/useCartStore';
+import { API_BASE_URL, CREATE_REVIEW_API_URL, formatPrice, GET_PRODUCT_API_URL, GET_RELATED_PRODUCTS_API_URL, GET_REVIEWS_API_URL, GET_SHOPS_API_URL, Product, Review, Shop } from '@/types/product';
+import { Entypo, FontAwesome, Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ProductModal() {
   const { id } = useLocalSearchParams()
   const router = useRouter()
-  useCartStore() // Subscribe to store updates
-  const productId = id as string
-
+  const productId = id as string;
   const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
+  const { items, addToCart, decrementItem, incrementItem, wishlistIds, toggleWishlist } = useCartStore();
+  const qty = items.find(i => i.product._id === productId)?.quantity || 0;
+
+  const { user } = useAuthStore();
+
   const [product, setProduct] = useState<Product | null>(null);
+  const [sellerShop, setSellerShop] = useState<Shop | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const qty = getCartQuantity(productId);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState(5);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  const fetchProduct = async () => {
+  const images = useMemo(() => {
+    if (!product) return [];
+    return Array.isArray(product.product_image) ? product.product_image : [product.product_image];
+  }, [product]);
+
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+  // Functions defined BEFORE any returns
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${GET_REVIEWS_API_URL}?productId=${productId}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  const fetchRelated = async (category: string) => {
+    try {
+      const res = await fetch(`${GET_RELATED_PRODUCTS_API_URL}?category=${category}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRelatedProducts(data.filter(p => p._id !== productId));
+      }
+    } catch (err) {
+      console.error("Error fetching related products:", err);
+    }
+  };
+
+  const fetchSellerShop = async (ownerId: string) => {
+    try {
+      const res = await fetch(GET_SHOPS_API_URL);
+      const data: Shop[] = await res.json();
+      const shop = data.find(s => s.owner_id === ownerId);
+      if (shop) setSellerShop(shop);
+    } catch (err) {
+      console.error("Error fetching seller shop:", err);
+    }
+  };
+
+  const fetchProductData = async () => {
+    if (!productId) return;
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(PRODUCTS_API_URL);
-
-      if (!response.ok) {
-        throw new Error('Failed to get product');
-      }
-
-      const data: Product[] = await response.json();
-      const foundProduct = data.find(p => p._id === productId);
-
-      if (!foundProduct) {
-        setError('Product not found');
+      const res = await fetch(`${GET_PRODUCT_API_URL}?id=${productId}`);
+      if (!res.ok) throw new Error("Failed to fetch product");
+      const data = await res.json();
+      if (data) {
+        setProduct(data);
+        if (data.product_category || data.product_cartegory) {
+          fetchRelated(data.product_category || data.product_cartegory);
+        }
+        if (data.product_owner_id) {
+          fetchSellerShop(data.product_owner_id);
+        }
+        fetchReviews();
       } else {
-        setProduct(foundProduct);
+        setError('Product not found');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -50,15 +109,59 @@ export default function ProductModal() {
     }
   };
 
-  useEffect(() => {
-    if (productId) {
-      fetchProduct();
+  const submitReview = async () => {
+    if (!user) {
+      router.push('/(auth)/login');
+      return;
     }
+
+    if (!reviewTitle.trim() || !reviewText.trim()) {
+      Alert.alert("Error", "Please fill in both title and review text.");
+      return;
+    }
+
+    try {
+      setIsSubmittingReview(true);
+      const res = await fetch(CREATE_REVIEW_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: productId,
+          reviewer_id: user._id,
+          title: reviewTitle,
+          rating,
+          review: reviewText,
+          verified: true
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setReviewTitle('');
+        setReviewText('');
+        setRating(5);
+        fetchReviews();
+        Alert.alert("Success", "Review submitted successfully!");
+      } else {
+        Alert.alert("Error", data.message || "Failed to submit review.");
+      }
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      Alert.alert("Error", "An error occurred while submitting your review.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Hooks registered AFTER functions but BEFORE returns
+  useEffect(() => {
+    fetchProductData();
   }, [productId]);
 
+  // Loading/Error Returns
   if (loading) {
     return (
-      <View style={styles.containerCenter}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={{ color: colors.text, marginTop: 10 }}>Loading product...</Text>
       </View>
@@ -67,37 +170,66 @@ export default function ProductModal() {
 
   if (error || !product) {
     return (
-      <View style={styles.containerCenter}>
-        <Text style={styles.title}>{error || 'Product not found'}</Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Close</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={{ color: colors.text, marginLeft: 10, fontSize: 18 }}>Error</Text>
+        </View>
+        <ErrorView message={error || "Product not found"} onRetry={fetchProductData} />
       </View>
-    )
+    );
   }
 
-
+  // Main Render
   return (
     <View style={styles.container}>
-
-      <View style={{ flexDirection: 'row' }}>
-        <TouchableOpacity onPress={() => router.back()} style={{
-          backgroundColor: colors.background,
-          padding: 8,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        >
-          {Platform.OS === 'android' ? <Ionicons name="arrow-back" size={24} color={colors.primary} /> : undefined}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
 
-        <Text style={{ color: colors.primary, fontSize: 24, fontWeight: 'bold', padding: 20, flex: 1 }} numberOfLines={1}>
+        <Text style={{ color: colors.primary, fontSize: 24, fontWeight: 'bold', flex: 1 }} numberOfLines={1}>
           {product.product_name}
         </Text>
       </View>
 
-      <ScrollView style={{ padding: 5 }}>
-        <Image source={{ uri: product.product_image }} style={styles.image} resizeMode='cover' />
+      <ScrollView style={{ padding: 10 }}>
+        <View style={{ position: 'relative' }}>
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => index.toString()}
+            onMomentumScrollEnd={(e) => {
+              const offset = e.nativeEvent.contentOffset.x;
+              const index = Math.round(offset / (SCREEN_WIDTH - 20));
+              setActiveImageIndex(index);
+            }}
+            renderItem={({ item }) => (
+              <Image
+                source={{ uri: item }}
+                style={[styles.image, { width: SCREEN_WIDTH - 20 }]}
+                resizeMode='cover'
+              />
+            )}
+          />
+          {images.length > 1 && (
+            <View style={styles.paginationDots}>
+              {images.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    activeImageIndex === index ? styles.activeDot : styles.inactiveDot
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
 
         <Text style={styles.title}>{product.product_name}</Text>
         <Text style={styles.price}>{formatPrice(product.product_price)}</Text>
@@ -111,7 +243,7 @@ export default function ProductModal() {
 
         <View style={styles.detailsRow}>
           <Text style={styles.detailLabel}>Category:</Text>
-          <Text style={styles.detailValue}>{product.product_cartegory || 'N/A'}</Text>
+          <Text style={styles.detailValue}>{product.product_category || product.product_cartegory || 'N/A'}</Text>
         </View>
 
         <View style={styles.detailsRow}>
@@ -119,126 +251,206 @@ export default function ProductModal() {
           <Text style={styles.detailValue}>{product.product_condition || 'N/A'}</Text>
         </View>
 
-        {/* {product.product_views !== undefined && (
-          <View style={styles.detailsRow}>
-            <Text style={styles.detailLabel}>Views:</Text>
-            <Text style={styles.detailValue}>{product.product_views}</Text>
-          </View>
-        )}
-
-        {product.product_likes !== undefined && (
-          <View style={styles.detailsRow}>
-            <Text style={styles.detailLabel}>Likes:</Text>
-            <Text style={styles.detailValue}>{product.product_likes}</Text>
-          </View>
-        )} */}
-
         <View style={{ height: 16 }} />
 
-        <View style={{ flexDirection: 'row', flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           {qty > 0 ? (
             <View style={styles.qtyRow}>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementCartItem(product._id)}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => decrementItem(product._id)}>
                 <Text style={styles.qtyBtnText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.qtyText}>{qty}</Text>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementCartItem(product._id)}>
+              <TouchableOpacity style={styles.qtyBtn} onPress={() => incrementItem(product._id)}>
                 <Text style={styles.qtyBtnText}>+</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={styles.addButton} onPress={() => AddToCart(product)}>
+            <TouchableOpacity style={styles.addButton} onPress={() => addToCart(product)}>
               <Text style={styles.addButtonText}>Add to Cart</Text>
             </TouchableOpacity>
           )}
 
-          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <TouchableOpacity style={{ marginLeft: 20 }}>
-                <Entypo name='eye' size={28} color={colors.primary} />
+          <View style={{ flexDirection: 'row', gap: 15 }}>
+            {/* <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity>
+                <Entypo name='eye' size={24} color={colors.primary} />
               </TouchableOpacity>
-              <Text style={[styles.detailValue, { marginLeft: 18 }]}>{product.product_views}</Text>
+              <Text style={styles.detailValue}>{product.product_views || 0}</Text>
+            </View> */}
+
+            <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity disabled={isLiking} onPress={async () => {
+                if (!user) {
+                  router.push('/(auth)/login');
+                  return;
+                }
+                try {
+                  setIsLiking(true);
+                  const res = await fetch(`${API_BASE_URL}/product/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId: product._id, userId: user._id })
+                  });
+                  if (res.ok) {
+                    setLiked(!liked);
+                    fetchProductData(); // Refresh to get new like count
+                  }
+                } catch (err) {
+                  console.error("Error liking product:", err);
+                  // fallback toggle for UI even if backend fails (optional)
+                  setLiked(!liked);
+                } finally {
+                  setIsLiking(false);
+                }
+              }}>
+                <FontAwesome name={liked ? 'thumbs-up' : 'thumbs-o-up'} size={24} color={colors.primary} />
+              </TouchableOpacity>
+              <Text style={styles.detailValue}>{product.product_likes || 0}</Text>
             </View>
 
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <TouchableOpacity style={{ marginLeft: 20 }}>
-                <FontAwesome name='thumbs-o-up' size={28} color={colors.primary} />
+            <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => triggerShare(`Check out ${product.product_name} on ShopCheap!`, 'https://www.shopcheapug.com/home')}>
+                <Entypo name='share' size={24} color={colors.primary} />
               </TouchableOpacity>
-              <Text style={[styles.detailValue, { marginLeft: 18 }]}>{product.product_likes}</Text>
+              <Text style={styles.detailValue}>Share</Text>
             </View>
 
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <TouchableOpacity style={{ marginLeft: 20 }}
-                onPress={() => triggerShare(`Check out ${product.product_name} on ShopCheap!`, 'https://www.shopcheapug.com/home')}
+            <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity disabled={isBookmarking} onPress={async () => {
+                if (!user) {
+                  router.push('/(auth)/login');
+                  return;
+                }
+                try {
+                  setIsBookmarking(true);
+                  await toggleWishlist(product);
+                } catch (err) {
+                  console.error("Error bookmarking:", err);
+                } finally {
+                  setIsBookmarking(false);
+                }
+              }}>
+                <FontAwesome
+                  name={wishlistIds.includes(product._id) ? 'bookmark' : 'bookmark-o'}
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+              <Text style={styles.detailValue}>Bookmark</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Seller Info */}
+        <View style={styles.sellerSection}>
+          <Text style={styles.sectionTitle}>Seller Details</Text>
+          <View style={[styles.detailsRow,]}>
+            <Text style={styles.detailLabel}>Seller:</Text>
+            <Text style={styles.detailValue}>{sellerShop?.shop_name || product.product_owner_id}</Text>
+          </View>
+          <View style={[styles.detailsRow,]}>
+            <Text style={styles.detailLabel}>Contact:</Text>
+            <Text style={styles.detailValue}>{sellerShop?.phone || 'N/A'}</Text>
+          </View>
+          <View style={[styles.detailsRow,]}>
+            <Text style={styles.detailLabel}>Email:</Text>
+            <Text style={styles.detailValue}>{sellerShop?.email || 'N/A'}</Text>
+          </View>
+          {sellerShop?.phone && (
+            <TouchableOpacity style={styles.detailsRow} onPress={() => Linking.openURL(`tel:${sellerShop.phone}`)}>
+              <Ionicons name="call-outline" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.detailValue, { color: colors.primary }]}>{sellerShop.phone}</Text>
+            </TouchableOpacity>
+          )}
+          {sellerShop?.email && (
+            <TouchableOpacity style={styles.detailsRow} onPress={() => Linking.openURL(`mailto:${sellerShop.email}`)}>
+              <Ionicons name="mail-outline" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.detailValue, { color: colors.primary }]}>{sellerShop.email}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <Text style={styles.sectionTitle}>Related Products</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+              {relatedProducts.map((p) => (
+                <TouchableOpacity
+                  key={p._id}
+                  style={{ marginRight: 15, width: 140 }}
+                  onPress={() => router.push({ pathname: '/(modals)/product', params: { id: p._id } })}
+                >
+                  <Image source={{ uri: Array.isArray(p.product_image) ? p.product_image[0] : p.product_image }} style={{ width: 140, height: 140, borderRadius: 8, backgroundColor: '#eee' }} />
+                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600', marginTop: 4 }} numberOfLines={1}>{p.product_name}</Text>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{formatPrice(p.product_price)}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Reviews Section */}
+        <View style={{ marginTop: 24, marginBottom: 40 }}>
+          <Text style={styles.sectionTitle}>Customer Reviews ({reviews.length})</Text>
+
+          {user && (
+            <View style={styles.reviewForm}>
+              <Text style={{ color: colors.text, fontWeight: '700', marginBottom: 12 }}>Write a Review</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 12, gap: 8 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                    <Ionicons name={star <= rating ? "star" : "star-outline"} size={24} color="#FFD700" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={[styles.input, { marginBottom: 12 }]}
+                placeholder="Review Title"
+                placeholderTextColor={colors.grayish}
+                value={reviewTitle}
+                onChangeText={setReviewTitle}
+              />
+              <TextInput
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Share your experience..."
+                placeholderTextColor={colors.grayish}
+                multiline
+                value={reviewText}
+                onChangeText={setReviewText}
+              />
+              <TouchableOpacity
+                style={[styles.addButton, { width: '100%', marginTop: 12, backgroundColor: isSubmittingReview ? colors.gray : colors.primary }]}
+                onPress={submitReview}
+                disabled={isSubmittingReview}
               >
-                <Entypo name='share' size={28} color={colors.primary} />
+                {isSubmittingReview ? <ActivityIndicator color="#000" /> : <Text style={styles.addButtonText}>Submit Review</Text>}
               </TouchableOpacity>
-              <Text style={[styles.detailValue, { marginLeft: 18 }]}>Share</Text>
             </View>
-          </View>
-        </View>
+          )}
 
-        {/* seller details */}
-        <View style={{
-          marginTop: 24,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: colors.gray,
-          borderRadius: 8,
-          marginBottom: 50
-        }}
-        >
-          <Text style={{
-            color: colors.text,
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginBottom: 12
-          }}
-          >
-            Seller Details
-          </Text>
-          <View style={{ flexDirection: 'row', flex: 1, justifyContent: 'space-between' }} >
-            <View>
-              <Text style={styles.sellerDetails}>Seller ID:</Text>
-            </View>
-
-            <View>
-              <Text style={styles.sellerDetails}>{product.product_owner_id}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/*  More products from the same seller        */}
-        <View style={{ marginTop: -10, marginBottom: 100 }}>
-          <Text style={styles.sellerDetails}>More Products from the Seller</Text>
-          <View style={{}}>
-            <ScrollView horizontal style={[styles.categoriesWrap, { marginTop: 12 }]}
-              showsHorizontalScrollIndicator={false}
-            >
-              {categories.slice(0, 8).map((c, idx) => (
-                <CategoryTile key={idx} title={c.title} image={c.image} />
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-
-
-        {/*  Related Products     */}
-        <View style={{ marginTop: -50, marginBottom: 100 }}>
-          <Text style={styles.sellerDetails}>Related Products</Text>
-          <View style={{}}>
-            <ScrollView horizontal style={[styles.categoriesWrap, { marginTop: 12 }]}
-              showsHorizontalScrollIndicator={false}
-            >
-              {categories.slice(0, 8).map((c, idx) => (
-                <CategoryTile key={idx} title={c.title} image={c.image} />
-              ))}
-            </ScrollView>
-          </View>
+          {reviews.length === 0 ? (
+            <Text style={{ color: colors.grayish, marginTop: 16 }}>No reviews yet. Be the first to review!</Text>
+          ) : (
+            reviews.map((rev) => (
+              <View key={rev._id} style={styles.reviewItem}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{rev.title}</Text>
+                  <View style={{ flexDirection: 'row' }}>
+                    {[...Array(5)].map((_, i) => (
+                      <Ionicons key={i} name="star" size={12} color={i < rev.rating ? "#FFD700" : "#E0E0E0"} />
+                    ))}
+                  </View>
+                </View>
+                <Text style={{ color: colors.grayish, fontSize: 13, marginTop: 4 }}>{rev.review}</Text>
+                <Text style={{ color: colors.grayish, fontSize: 10, marginTop: 4 }}>{new Date(rev._creationTime).toLocaleDateString()}</Text>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
-  )
+  );
 }
 
 const appStyles = (colors: any) => StyleSheet.create({
@@ -246,19 +458,11 @@ const appStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background
   },
-  containerCenter: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16
-  },
   image: {
     width: '100%',
     height: 320,
     backgroundColor: '#111',
-    borderRadius: 8,
-    flex:1,
+    borderRadius: 8
   },
   title: {
     color: colors.text,
@@ -303,7 +507,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    width: '60%'
+    width: '50%'
   },
   addButtonText: {
     color: '#000',
@@ -334,24 +538,60 @@ const appStyles = (colors: any) => StyleSheet.create({
     minWidth: 24,
     textAlign: 'center'
   },
-  button: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 12
-  },
-  buttonText: {
-    color: '#000',
-    fontWeight: '700'
-  },
-  sellerDetails: {
+  sectionTitle: {
     color: colors.text,
-    fontSize: 16,
-    marginTop: 4
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 20,
+    marginBottom: 8
   },
-  categoriesWrap: {
+  sellerSection: {
+    marginTop: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.gray + '33',
+    borderRadius: 8
+  },
+  reviewForm: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.gray + '33'
+  },
+  reviewItem: {
+    marginTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray + '33',
+    paddingBottom: 12
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.gray + '33',
+    borderRadius: 8,
+    padding: 12,
+    color: colors.text,
+    fontSize: 14,
+  },
+  paginationDots: {
     flexDirection: 'row',
-    flexWrap: 'wrap'
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    gap: 8,
   },
-})
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeDot: {
+    backgroundColor: colors.primary,
+    width: 20,
+  },
+  inactiveDot: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  }
+});

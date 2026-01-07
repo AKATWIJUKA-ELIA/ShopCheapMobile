@@ -1,5 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext'
-import { CREATE_USER_API_URL } from '@/types/product'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useCartStore } from '@/store/useCartStore'
+import { AUTH_API_URL, CREATE_USER_API_URL } from '@/types/product'
 import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
@@ -19,6 +21,7 @@ export default function Signup() {
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
   const router = useRouter();
+  const { setUser } = useAuthStore();
 
   const handleSignup = async () => {
     if (!userName || !email || !password || !phone) {
@@ -28,13 +31,14 @@ export default function Signup() {
 
     try {
       setLoading(true);
+      // 1. Create User
       const response = await fetch(CREATE_USER_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: userName,
           email,
-          passwordHash: password, // The API expects passwordHash (even if it's plain text for now as per docs)
+          passwordHash: password, // Sending plain text, backend should handle hashing if needed
           phoneNumber: phone,
           isVerified: false,
           role: 'user',
@@ -46,10 +50,34 @@ export default function Signup() {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', 'Account created successfully!');
-        router.replace('/(auth)/login');
+        // 2. Automatically Login after signup
+        console.log('[Signup] User created successfully, attempting auto-login...');
+        const loginRes = await fetch(AUTH_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok && loginData.success) {
+          setUser(loginData.user);
+
+          // Fetch cart for the new user
+          const { fetchCart, fetchBookmarks } = useCartStore.getState();
+          await fetchCart();
+          await fetchBookmarks();
+
+          Alert.alert('Success', 'Account created and logged in!');
+          router.replace('/(tabs)/home');
+        } else {
+          Alert.alert('Signup Success', 'Account created! Please log in manually.');
+          router.replace('/(auth)/login');
+        }
       } else {
-        Alert.alert('Signup Failed', data.message || 'Error creating account');
+        // Handle specific API errors
+        const errorMsg = data.message || data.error || 'Error creating account';
+        Alert.alert('Signup Failed', errorMsg);
       }
     } catch (error) {
       Alert.alert('Error', 'An error occurred. Please try again later.');

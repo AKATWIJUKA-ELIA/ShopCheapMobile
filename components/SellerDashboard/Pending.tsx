@@ -1,59 +1,51 @@
-import React, { useMemo, useState } from 'react';
-import {View, Text, StyleSheet, Image, FlatList, TouchableOpacity} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Checkbox from 'expo-checkbox';
-import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthStore } from '@/store/useAuthStore';
+import { formatPrice, GET_PRODUCTS_BY_SELLER_API_URL, Product } from '@/types/product';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ErrorView from '../ui/ErrorView';
 
-const PRIMARY = '#f97316';
-const BG = '#f3f4f6';
-const SURFACE = '#ffffff';
-const BORDER = '#e5e7eb';
-const TEXT = '#111827';
-const MUTED = '#6b7280';
-const DANGER = '#ef4444';
 
-const products = [
-  {
-    id: '1',
-    name: 'Nike Air Max 90',
-    description: "Men's Sneakers - Size 10",
-    price: '$129.99',
-    date: 'Oct 24, 2023',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuB9J8xEp2F5izjiN9w84EzLozAu5DRrbKu2f8DQZG1izhRGpcvbwDrF4135cswwgbSPuxt911z-rzGIG18fm2hzdxIL7FxC7Iyf4ESNdSX_2ecIpeDazlncf25YazMw1Z0q479aR3FTwtQA_2uKLkofE4Q-oT7T9kK-vX0-Ct4MxvzvVDqGIvyz48MP_TeX1viHiDD1OT6W5E4yP1cRIwGeLmOrDsIcPTa1foZq274nIB501AN5KYaqi-BWchPaEEf7PXwIE4nGag',
-  },
-  {
-    id: '2',
-    name: 'Sony WH-1000XM4',
-    description: 'Wireless Noise Cancelling',
-    price: '$248.00',
-    date: 'Oct 23, 2023',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA6D1vq79Yf4ft_NObDjj-tT8IFGE49fYgKQ8HvqTkLEo3VDbVasJ_uTDZKRZ13FCagp7W3kYICj976hZwejum5Hcas5xIJYHpRfWzFA9GsuvXT2UJy2VIkXtbWK6BgkonJPRWENmjpptIFkTAA97tNnOx14AX1ijxk6VMNHwtcufc5InHufFgGmso3jeBzZHmOk8nQqH9aZZmWpxzN3oOBeI8bGYkhfOTk1RXG9kXUUj6xhuopisUxCseu3C91fro_qbvpLaBnTQ',
-  },
-  {
-    id: '3',
-    name: 'Apple Watch Series 7',
-    description: 'Midnight Aluminum Case',
-    price: '$399.00',
-    date: 'Oct 22, 2023',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCaz9S023ysE-OVUGqV-VjKoiE_yvHijbiEjNpJEGfivVoAqOrS8tC7IVk_4yYLkDwLpyl4q8fvdDWHV0QIBzuo_M-pd9retrnEUDOlL9Ovc2yd2eracQRpklEsFX9dEDeBkN98JniV0G-rjjXU7Z76wH4JxorMH5zUcPezgrsJAA61XuAxXN-mnMSuZKoKnAXZjmtVUzroX1cniytNSbVd3VCF5UalXu6cuhEcjhBbTI9LeaB-xE1E6uTr4qumrCBRYPKMoVtirg',
-  },
-];
 
 export default function PendingProductsScreen() {
-  const [selected, setSelected] = useState<string[]>([]);
-
   const router = useRouter();
-  const {colors, toggleTheme} = useTheme();
+  const { colors, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const { user } = useAuthStore();
 
-  const toggleSelect = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProducts = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${user._id}`);
+      if (!res.ok) throw new Error("Failed to fetch products");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setProducts(data.filter(p => !p.approved));
+      }
+    } catch (error) {
+      console.error("Error fetching pending products:", error);
+      setError("Unable to load pending products.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProducts();
   };
 
   return (
@@ -70,47 +62,50 @@ export default function PendingProductsScreen() {
         </TouchableOpacity>
       </View> */}
 
-      {/* List */}
-      <View style={{height:10}}/>
-      <FlatList
-        data={products}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            {/* <Checkbox
-              value={selected.includes(item.id)}
-              onValueChange={() => toggleSelect(item.id)}
-              color={PRIMARY}
-            /> */}
-
-            <Image source={{ uri: item.image }} style={styles.image} />
-
-            <View style={styles.info}>
-              <View style={styles.row}>
-                <Text style={styles.title} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Pending</Text>
-                </View>
-              </View>
-
-              <Text style={styles.desc} numberOfLines={1}>
-                {item.description}
-              </Text>
-
-              <View style={styles.row}>
-                <Text style={styles.price}>{item.price}</Text>
-                <View style={styles.dateRow}>
-                  <Ionicons name="calendar-outline" size={12} color={colors.grayish} />
-                  <Text style={styles.date}>{item.date}</Text>
-                </View>
-              </View>
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+      ) : error ? (
+        <ErrorView message={error} onRetry={fetchProducts} />
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={item => item._id}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', marginTop: 40 }}>
+              <Text style={{ color: colors.grayish }}>No pending products found.</Text>
             </View>
-          </View>
-        )}
-      />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push({ pathname: '/(modals)/product', params: { id: item._id } })}
+            >
+              <Image source={{ uri: item.product_image?.[0] || 'https://via.placeholder.com/320' }} style={styles.image} />
+
+              <View style={styles.info}>
+                <View style={styles.row}>
+                  <Text style={styles.title} numberOfLines={1}>
+                    {item.product_name}
+                  </Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Pending</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.desc} numberOfLines={1}>
+                  {item.product_description}
+                </Text>
+
+                <View style={styles.row}>
+                  <Text style={styles.price}>{formatPrice(item.product_price)}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -141,7 +136,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
   },
   deleteText: {
-    color: DANGER,
+    color: '#ef4444',
     marginLeft: 6,
     fontSize: 13,
     fontWeight: '600',

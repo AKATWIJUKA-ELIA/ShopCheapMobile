@@ -1,20 +1,60 @@
-import React, { useMemo, useState } from 'react';
-import {View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet} from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthStore } from '@/store/useAuthStore';
+import { GET_SHOP_BY_OWNER_API_URL } from '@/types/product';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ShopProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
-
-  const {colors, theme, toggleTheme} = useTheme();
+  const { colors, theme, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
+  const { user } = useAuthStore();
 
-  // form state
-  const [shopName, setShopName] = useState('light-electronics');
-  const [tagline, setTagline] = useState('light-electronics');
-  const [description, setDescription] = useState(
-    'Premium electronics and gadgets store specializing in cutting-edge technology. We pride ourselves on quality products and exceptional customer service.'
-  );
+  const [shopName, setShopName] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [description, setDescription] = useState('');
+  const [profileImage, setProfileImage] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchShop = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${GET_SHOP_BY_OWNER_API_URL}?ownerId=${user._id}`);
+      if (!res.ok) throw new Error("Failed to fetch shop profile");
+      const data = await res.json();
+      if (data.success && data.shop) {
+        setShopName(data.shop.shop_name);
+        setTagline(data.shop.slogan);
+        setDescription(data.shop.description);
+        setProfileImage(data.shop.profile_image);
+        setCoverImage(data.shop.cover_image);
+      } else {
+        setError(data.message || "Shop profile not found");
+      }
+    } catch (error) {
+      console.error("Error fetching shop profile:", error);
+      setError("Network request failed. Unable to load shop profile.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShop();
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchShop();
+  };
 
   const onSave = () => {
     // TODO: save changes to backend/API
@@ -26,11 +66,27 @@ export default function ShopProfileScreen() {
     setIsEditing(false);
   };
 
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ErrorView message={error} onRetry={fetchShop} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         <View style={{ marginBottom: 16 }}>
-          <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={styles.mainTitle}>Shop Settings</Text>
             <TouchableOpacity
               style={styles.iconButton}
@@ -108,13 +164,13 @@ export default function ShopProfileScreen() {
                   cursorColor={colors.primary}
                 />
               ) : (
-                <Text style={[styles.readOnlyText, {fontWeight:'500', fontSize:12}]}>{description}</Text>
+                <Text style={[styles.readOnlyText, { fontWeight: '500', fontSize: 12 }]}>{description}</Text>
               )}
             </View>
           </View>
         </View>
 
-        {/* Images Section (kept same) */}
+        {/* Images Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderTitle}>
@@ -128,29 +184,24 @@ export default function ShopProfileScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Shop Logo</Text>
               <View style={styles.logoRow}>
-                <View style={styles.logoDropZone}>
-                  <MaterialIcons
-                    name="add-photo-alternate"
-                    size={28}
-                    color={colors.grayish}
-                  />
-                  <Text style={styles.uploadText}>Upload</Text>
-                </View>
+                {profileImage ? (
+                  <Image source={{ uri: Array.isArray(profileImage) ? profileImage[0] : profileImage }} style={styles.logoImage} />
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <MaterialIcons name="storefront" size={28} color={colors.grayish} />
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.uploadHelper}>
                     Recommended size:{'\n'}
                     <Text style={{ fontWeight: '500' }}>200x200px</Text>
-                    {'\n'}
-                    PNG or JPG
                   </Text>
-                  <TouchableOpacity style={styles.uploadButton}>
-                    <MaterialIcons
-                      name="upload-file"
-                      size={14}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.uploadButtonText}>Choose File</Text>
-                  </TouchableOpacity>
+                  {isEditing && (
+                    <TouchableOpacity style={styles.uploadButton}>
+                      <MaterialIcons name="upload-file" size={14} color={colors.primary} />
+                      <Text style={styles.uploadButtonText}>Change Logo</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </View>
@@ -158,16 +209,20 @@ export default function ShopProfileScreen() {
             {/* Banner */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Shop Banner</Text>
-              <View style={styles.bannerDropZone}>
-                <MaterialIcons
-                  name="add-photo-alternate"
-                  size={32}
-                  color={colors.grayish}
-                />
-                <Text style={styles.uploadTextSmall}>
-                  Tap to upload banner
-                </Text>
-              </View>
+              {coverImage ? (
+                <Image source={{ uri: Array.isArray(coverImage) ? coverImage[0] : coverImage }} style={styles.bannerImage} />
+              ) : (
+                <View style={styles.bannerDropZone}>
+                  <MaterialIcons name="add-photo-alternate" size={32} color={colors.grayish} />
+                  <Text style={styles.uploadTextSmall}>No banner uploaded</Text>
+                </View>
+              )}
+              {isEditing && (
+                <TouchableOpacity style={styles.uploadButton}>
+                  <MaterialIcons name="upload-file" size={14} color={colors.primary} />
+                  <Text style={styles.uploadButtonText}>Change Banner</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -191,7 +246,7 @@ export default function ShopProfileScreen() {
 
       {/* Theme Button */}
       {!isEditing && (
-        <TouchableOpacity style={styles.themeButton} 
+        <TouchableOpacity style={styles.themeButton}
           onPress={toggleTheme}
         >
           <Ionicons
@@ -207,24 +262,24 @@ export default function ShopProfileScreen() {
 
 
 const appStyles = (colors: any) => StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.background 
+  container: {
+    flex: 1,
+    backgroundColor: colors.background
   },
-  iconButton: { 
-    padding: 8, 
+  iconButton: {
+    padding: 8,
     borderRadius: 99
   },
-  mainTitle: { 
-    fontSize: 24, 
-    fontWeight: '700', 
-    color: colors.text 
+  mainTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text
 
   },
-  mainSubtitle: { 
-    fontSize: 12, 
-    color: colors.grayish, 
-    marginTop: 2 
+  mainSubtitle: {
+    fontSize: 12,
+    color: colors.grayish,
+    marginTop: 2
   },
   section: {
     backgroundColor: colors.background,
@@ -234,38 +289,38 @@ const appStyles = (colors: any) => StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
-  sectionHeader: { 
-    marginBottom: 12, 
-    borderBottomWidth: 1, 
-    borderColor: colors.lightgray, 
-    paddingBottom: 8 
+  sectionHeader: {
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderColor: colors.lightgray,
+    paddingBottom: 8
   },
-  sectionHeaderTitle: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 4 
+  sectionHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
   },
-  sectionTitleText: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: colors.text 
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text
   },
-  sectionSubtitle: { 
-    fontSize: 10, 
-    color: colors.grayish, 
-    marginTop: 2 
+  sectionSubtitle: {
+    fontSize: 10,
+    color: colors.grayish,
+    marginTop: 2
   },
-  sectionContent: { 
-    marginTop: 8 
+  sectionContent: {
+    marginTop: 8
   },
-  inputGroup: { 
-    marginBottom: 12 
+  inputGroup: {
+    marginBottom: 12
   },
-  label: { 
-    fontSize: 12, 
-    fontWeight: '500', 
-    color: colors.text, 
-    marginBottom: 4 
+  label: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text,
+    marginBottom: 4
   },
   input: {
     backgroundColor: colors.background,
@@ -280,21 +335,26 @@ const appStyles = (colors: any) => StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  textArea: { 
-    height: 100, 
-    textAlignVertical: 'top' 
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top'
   },
-  inputHelper: { 
-    fontSize: 10, 
-    color: colors.lightgray, 
-    marginTop: 2 
+  inputHelper: {
+    fontSize: 10,
+    color: colors.lightgray,
+    marginTop: 2
   },
-  logoRow: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    gap: 12 
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12
   },
-  logoDropZone: {
+  logoImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+  },
+  logoPlaceholder: {
     width: 96,
     height: 96,
     borderWidth: 2,
@@ -305,30 +365,11 @@ const appStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  uploadText: { 
-    fontSize: 10, 
-    color: colors.grayish, 
-    fontWeight: '500', 
-    marginTop: 2 
-  },
-  uploadTextSmall: { 
-    fontSize: 10, 
-    color: colors.grayish 
-  },
-  uploadHelper: { 
-    fontSize: 10, 
-    color: colors.grayish, 
-    marginTop: 4 
-  },
-  uploadButton: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 4 
-  },
-  uploadButtonText: { 
-    fontSize: 12, 
-    color: colors.primary, 
-    marginLeft: 2 
+  bannerImage: {
+    width: '100%',
+    height: 128,
+    borderRadius: 12,
+    marginBottom: 4,
   },
   bannerDropZone: {
     width: '100%',
@@ -342,16 +383,41 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
+  uploadText: {
+    fontSize: 10,
+    color: colors.grayish,
+    fontWeight: '500',
+    marginTop: 2
+  },
+  uploadTextSmall: {
+    fontSize: 10,
+    color: colors.grayish
+  },
+  uploadHelper: {
+    fontSize: 10,
+    color: colors.grayish,
+    marginTop: 4
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4
+  },
+  uploadButtonText: {
+    fontSize: 12,
+    color: colors.primary,
+    marginLeft: 2
+  },
   bottomBar: {
     padding: 16,
     backgroundColor: colors.background,
-    flexDirection:'row',
-    justifyContent:'space-between',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  savePrompt: { 
-    fontSize: 10, 
-    color: colors.grayish, 
-    marginBottom: 4 
+  savePrompt: {
+    fontSize: 10,
+    color: colors.grayish,
+    marginBottom: 4
   },
   saveButton: {
     flexDirection: 'row',
@@ -362,11 +428,11 @@ const appStyles = (colors: any) => StyleSheet.create({
     padding: 14,
     borderRadius: 12,
   },
-  saveButtonText: { 
+  saveButtonText: {
     color: colors.light
-    , 
-    fontWeight: '600', 
-    fontSize: 14 
+    ,
+    fontWeight: '600',
+    fontSize: 14
   },
   themeButton: {
     position: 'absolute',
@@ -382,7 +448,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 9,
   },
-  readOnlyText:{
+  readOnlyText: {
     fontSize: 14,
     color: colors.grayish,
     fontWeight: '700',

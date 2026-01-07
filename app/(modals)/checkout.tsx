@@ -1,6 +1,6 @@
 import AddressScreen from '@/components/Account/DeliveryAddress';
-import { clearCart, useCartStore } from '@/components/Operations';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useCartStore } from '@/store/useCartStore';
 import { formatPrice } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
@@ -12,7 +12,7 @@ const { height } = Dimensions.get("window");
 
 const CheckoutScreen = () => {
   const router = useRouter();
-  const cart = useCartStore();
+  const { items, total, clearCart } = useCartStore();
   const [step, setStep] = useState(0); // 0: Address, 1: Payment, 2: Review, 3: Confirm
 
 
@@ -222,13 +222,13 @@ const CheckoutScreen = () => {
         {step === 2 && (
           <View style={{ marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Review Order</Text>
-            {cart.items.map((ci: any) => (
+            {items.map((ci: any) => (
               <View key={ci.product._id} style={styles.reviewRow}>
                 <Text style={{ color: colors.text }}>{ci.product.product_name} x {ci.quantity}</Text>
                 <Text style={{ color: colors.text }}>{formatPrice(parseFloat(ci.product.product_price) * ci.quantity)}</Text>
               </View>
             ))}
-            <Text style={[styles.totalValue, { marginTop: 12 }]}>Total: {formatPrice(cart.total)}</Text>
+            <Text style={[styles.totalValue, { marginTop: 12 }]}>Total: {formatPrice(total)}</Text>
           </View>
         )}
 
