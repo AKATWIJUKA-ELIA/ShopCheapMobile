@@ -69,6 +69,7 @@ export interface Shop {
     phone?: string;
     email?: string;
     productCount?: number;
+    _creationTime?: number;
 }
 
 export interface Order {

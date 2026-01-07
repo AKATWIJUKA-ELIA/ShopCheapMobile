@@ -28,7 +28,7 @@ export default function TabLayout() {
         title: 'Home',
         headerShown: true,
         header: () => <HomeHeader />,
-        tabBarIcon: ({ color, size }) => <Ionicons name='home' size={size} color={color} />,
+        tabBarIcon: ({ color, size }) => <Entypo name='home' size={size} color={color} />,
         // headerLeft:() => (
         //   <Image source={{uri:'https://shopcheap.vercel.app/_next/image?url=%2Fimages%2Flogo2.png&w=1080&q=75'}}
         //   style={{ 

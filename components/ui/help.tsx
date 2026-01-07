@@ -50,7 +50,7 @@ export default function HelpCenter() {
             textAlign:'center',
             color:Colors.primary
         }}>
-          Reach Us
+          ShopCheap
         </Text>
 
         <View style={{gap:20,}}>

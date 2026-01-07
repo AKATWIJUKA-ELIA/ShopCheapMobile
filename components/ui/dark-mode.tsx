@@ -1,10 +1,10 @@
-import { Colors } from '@/constants/Colors';
-import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import ChangePasswordModal from '../Account/ChangePasswordModal';
 import CustomPopup from '../Account/PopUp';
-import { useTheme } from '@/contexts/ThemeContext';
 
 
 //this is the global state of the Settings Popup
@@ -27,14 +27,15 @@ export default function AccountSettings() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const { theme, toggleTheme, colors } = useTheme();
   const darkThemeEnabled = theme === 'dark';
-  const {isPopUpOpen} = usePopUpState();
+  const { isPopUpOpen } = usePopUpState();
+  const [isChangePassOpen, setIsChangePassOpen] = useState(false);
 
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   const router = useRouter();
 
   const handleChangePassword = () => {
-    Alert.alert('Change Password', 'Navigate to change password screen');
+    setIsChangePassOpen(true);
   };
 
   const handlePrivacyPolicy = () => {
@@ -44,66 +45,73 @@ export default function AccountSettings() {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => {closeSettingsPopUp(), router.push('/(auth)/login')} },
+      { text: 'Logout', style: 'destructive', onPress: () => { closeSettingsPopUp(), router.push('/(auth)/login') } },
     ]);
   };
 
   return (
     <View style={[styles.container, darkThemeEnabled && styles.darkContainer]}>
       <CustomPopup visible={isPopUpOpen} onClose={closeSettingsPopUp}
-        blurType={'light'}  
+        blurType={'dark'}
         blurAmount={5}
-        heightPercent={0.7}
+        heightPercent={0.5}
         widthPercent={0.8}
       >
-        <TouchableOpacity onPress={closeSettingsPopUp} style={[styles.backBtn, {top:0, left:0}]}>
-            <Ionicons name="close" size={24} color={colors.primary}/>
+        <TouchableOpacity onPress={closeSettingsPopUp} style={[styles.backBtn, { top: 0, left: 0 }]}>
+          <Ionicons name="close" size={24} color={colors.primary} />
         </TouchableOpacity>
 
-        <View style={{marginTop:-20}}>
-            <View style={{flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
-              <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.primary}/>
+        <View style={{ marginTop: -20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.primary} />
 
-              <Text style={{color:colors.primary, fontSize:24, fontWeight:'bold', padding:20}}>
-                {`${darkThemeEnabled ? 'Dark' : 'Light'} Mode`}
-              </Text>
-            </View>
-          
+            <Text style={{ color: colors.primary, fontSize: 24, fontWeight: 'bold', padding: 20 }}>
+              {`${darkThemeEnabled ? 'Dark' : 'Light'} Mode`}
+            </Text>
+          </View>
+
           <Text style={[styles.title, darkThemeEnabled && { color: colors.text }]}>Account Settings</Text>
 
-          <View style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
+          {/* <View style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
             <Ionicons name='notifications' size={24} color={colors.light}/>
             <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Notifications</Text>
             <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} thumbColor={notificationsEnabled ? colors.primary : colors.grayish} />
-          </View>
+          </View> */}
 
           <View style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
-            <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.primary}/>
+            <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.light} />
             <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Theme Switch</Text>
-            <Switch value={darkThemeEnabled} 
-              onValueChange={toggleTheme} 
+            <Switch value={darkThemeEnabled}
+              onValueChange={toggleTheme}
               thumbColor={darkThemeEnabled ? colors.primary : colors.grayish}
-              // trackColor={{ false: Colors.gray, true: Colors.primary }} 
+            // trackColor={{ false: Colors.gray, true: Colors.primary }} 
             />
           </View>
 
           <TouchableOpacity style={[styles.settingCard, darkThemeEnabled && styles.darkCard]} onPress={handleChangePassword} activeOpacity={0.7}>
-            <MaterialIcons name='password' size={24} color={colors.light}/>
+            <MaterialIcons name='password' size={24} color={colors.light} />
             <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Change Password</Text>
             <Feather name="chevron-right" size={24} color={darkThemeEnabled ? colors.light : colors.grayish} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.settingCard, darkThemeEnabled && styles.darkCard]} onPress={() => router.push('https://shopcheapug.com')} activeOpacity={0.7}>
-            <MaterialIcons name='privacy-tip' size={24} color={colors.light}/>
-            <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Privacy Policy</Text>
-            <Feather name="chevron-right" size={24} color={darkThemeEnabled ? colors.text : colors.grayish} />
-          </TouchableOpacity>
+          <Link href='https://shopcheapug.com' asChild style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
+            <TouchableOpacity style={[styles.settingCard, darkThemeEnabled && styles.darkCard]}>
+              <MaterialIcons name='privacy-tip' size={24} color={colors.light} />
+              <Text style={[styles.settingText, darkThemeEnabled && { color: colors.text }]}>Privacy Policy</Text>
+              <Feather name="chevron-right" size={24} color={darkThemeEnabled ? colors.text : colors.grayish} />
+            </TouchableOpacity>
+          </Link>
 
-          <TouchableOpacity style={[styles.logoutButton]} onPress={handleLogout} activeOpacity={0.7}>
+          {/* <TouchableOpacity style={[styles.logoutButton]} onPress={handleLogout} activeOpacity={0.7}>
             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Logout</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </CustomPopup>
+
+      <ChangePasswordModal
+        visible={isChangePassOpen}
+        onClose={() => setIsChangePassOpen(false)}
+      />
     </View>
 
   );
@@ -121,8 +129,8 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 24,
-    color:colors.light,
-    textAlign:'center'
+    color: colors.light,
+    textAlign: 'center'
   },
   settingCard: {
     backgroundColor: colors.gray,
@@ -152,10 +160,10 @@ const appStyles = (colors: any) => StyleSheet.create({
     borderRadius: 99,
     alignItems: 'center',
     marginTop: 8,
-    marginBottom:10
+    marginBottom: 10
   },
-  backBtn:{
-    
+  backBtn: {
+
   },
   // backBtnDark:{
   //   backgroundColor:Colors.light, 

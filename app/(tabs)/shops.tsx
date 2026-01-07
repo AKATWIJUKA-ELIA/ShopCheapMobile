@@ -4,7 +4,7 @@ import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GET_SHOPS_API_URL, Product, PRODUCTS_API_URL, Shop } from '@/types/product';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -28,6 +28,7 @@ export default function ShopsScreen() {
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   const [shops, setShops] = useState<Shop[]>([]);
+  const [sortMode, setSortMode] = useState<'default' | 'alpha_asc' | 'alpha_desc' | 'newest_desc' | 'newest_asc'>('default');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,13 +85,44 @@ export default function ShopsScreen() {
     fetchShops(true);
   };
 
+  const handleSortCycle = () => {
+    setSortMode(current => {
+      if (current === 'default') return 'alpha_asc';
+      if (current === 'alpha_asc') return 'alpha_desc';
+      if (current === 'alpha_desc') return 'newest_desc';
+      if (current === 'newest_desc') return 'newest_asc';
+      return 'default';
+    });
+  };
+
+  const getSortIcon = () => {
+    if (sortMode === 'default') return 'filter';
+    if (sortMode === 'alpha_asc') return 'sort-alpha-asc';
+    if (sortMode === 'alpha_desc') return 'sort-alpha-desc';
+    if (sortMode === 'newest_desc') return 'sort-amount-desc';
+    if (sortMode === 'newest_asc') return 'sort-amount-asc';
+    return 'filter';
+  };
+
   const filteredShops = useMemo(() => {
-    return shops.filter(shop =>
+    let result = shops.filter(shop =>
       shop.shop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       shop.slogan.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [shops, searchQuery]);
+
+    if (sortMode === 'alpha_asc') {
+      result.sort((a, b) => a.shop_name.localeCompare(b.shop_name));
+    } else if (sortMode === 'alpha_desc') {
+      result.sort((a, b) => b.shop_name.localeCompare(a.shop_name));
+    } else if (sortMode === 'newest_desc') {
+      result.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
+    } else if (sortMode === 'newest_asc') {
+      result.sort((a, b) => (a._creationTime || 0) - (b._creationTime || 0));
+    }
+
+    return result;
+  }, [shops, searchQuery, sortMode]);
 
   const HeroSection = () => {
     return (
@@ -104,6 +136,10 @@ export default function ShopsScreen() {
         <Text style={styles.heroSubtitle}>
           Discover amazing sellers on ShopCheap
         </Text>
+
+        <TouchableOpacity style={{ position: 'absolute', top: 16, right: 16 }} onPress={handleSortCycle}>
+          <FontAwesome name={getSortIcon()} size={18} color={colors.primary} />
+        </TouchableOpacity>
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color={colors.grayish} />

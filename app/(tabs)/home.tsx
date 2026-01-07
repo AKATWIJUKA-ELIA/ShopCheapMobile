@@ -11,11 +11,12 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { CATEGORIES_API_URL, Category, Product, PRODUCTS_API_URL } from '@/types/product'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 const banners = bannerImages;
 
 import { useSearchStore } from '@/components/SearchStore'
+import { FontAwesome } from '@expo/vector-icons'
 
 const Home = () => {
   const router = useRouter();
@@ -24,6 +25,7 @@ const Home = () => {
   const { query } = useSearchStore();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [sortMode, setSortMode] = useState<'default' | 'price_asc' | 'price_desc' | 'alpha_asc' | 'alpha_desc'>('default');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,43 @@ const Home = () => {
     fetchData();
   }, []);
 
+  const handleSortCycle = () => {
+    setSortMode(current => {
+      if (current === 'default') return 'price_asc';
+      if (current === 'price_asc') return 'price_desc';
+      if (current === 'price_desc') return 'alpha_asc';
+      if (current === 'alpha_asc') return 'alpha_desc';
+      return 'default';
+    });
+  };
+
+  const getSortIcon = () => {
+    if (sortMode === 'default') return 'filter';
+    if (sortMode === 'price_asc') return 'sort-numeric-asc';
+    if (sortMode === 'price_desc') return 'sort-numeric-desc';
+    if (sortMode === 'alpha_asc') return 'sort-alpha-asc';
+    if (sortMode === 'alpha_desc') return 'sort-alpha-desc';
+    return 'filter';
+  };
+
+  const filteredProducts = useMemo(() => {
+    let result = products.filter(p =>
+      (p.product_name || '').toLowerCase().includes((query || '').toLowerCase())
+    );
+
+    if (sortMode === 'price_asc') {
+      result.sort((a, b) => parseFloat(a.product_price) - parseFloat(b.product_price));
+    } else if (sortMode === 'price_desc') {
+      result.sort((a, b) => parseFloat(b.product_price) - parseFloat(a.product_price));
+    } else if (sortMode === 'alpha_asc') {
+      result.sort((a, b) => a.product_name.localeCompare(b.product_name));
+    } else if (sortMode === 'alpha_desc') {
+      result.sort((a, b) => b.product_name.localeCompare(a.product_name));
+    }
+
+    return result;
+  }, [products, query, sortMode]);
+
   const HeroSection = () => {
     return (
       <View style={{ backgroundColor: colors.background, flex: 1 }}>
@@ -80,8 +119,11 @@ const Home = () => {
 
         <View style={{ marginTop: 14, backgroundColor: colors.background }} />
 
-        <View style={{ backgroundColor: colors.primary, marginTop: 10, marginBottom: 10, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ backgroundColor: colors.primary, marginTop: 10, marginBottom: 10, justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row' }}>
           <SectionHeader title='All Products' />
+          <TouchableOpacity style={{ right: 0, padding: 10 }} onPress={handleSortCycle}>
+            <FontAwesome name={getSortIcon()} size={24} color={colors.light} />
+          </TouchableOpacity>
         </View>
       </View>
     )
@@ -122,7 +164,7 @@ const Home = () => {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ backgroundColor: colors.background }}>
         <FlatList
-          data={products.filter(p => (p.product_name || '').toLowerCase().includes((query || '').toLowerCase()))}
+          data={filteredProducts}
           numColumns={2}
           renderItem={({ item, index }) => (<RenderItem item={item} index={index} />)}
           keyExtractor={(item) => item._id}
