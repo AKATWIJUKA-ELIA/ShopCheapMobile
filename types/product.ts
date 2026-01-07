@@ -68,6 +68,7 @@ export interface Shop {
     };
     phone?: string;
     email?: string;
+    productCount?: number;
 }
 
 export interface Order {
@@ -118,5 +119,6 @@ export const INCREASE_CART_API_URL = `${API_BASE_URL}/increase-cart`;
 export const REDUCE_CART_API_URL = `${API_BASE_URL}/reduce-cart`;
 export const DELETE_CART_API_URL = `${API_BASE_URL}/delete-cart`;
 export const GET_SHOPS_API_URL = `${API_BASE_URL}/shops`;
+export const GET_USER_API_URL = `${API_BASE_URL}/user`;
 export const GET_BOOKMARKS_API_URL = `${API_BASE_URL}/bookmarks`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;

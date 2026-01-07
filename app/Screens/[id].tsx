@@ -1,6 +1,6 @@
 import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
-import { GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_API_URL, Product, Shop, formatPrice } from '@/types/product';
+import { GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_API_URL, GET_USER_API_URL, Product, Shop, formatPrice } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ export default function ShopDetailsScreen() {
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   const [shop, setShop] = useState<Shop | null>(null);
+  const [sellerUser, setSellerUser] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,20 @@ export default function ShopDetailsScreen() {
       }
       setShop(shopData);
 
-      // 2. Fetch products for this shop/seller
+      // 2. Fetch owner details
+      if (shopData.owner_id) {
+        try {
+          const userRes = await fetch(`${GET_USER_API_URL}?id=${shopData.owner_id}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setSellerUser(userData);
+          }
+        } catch (e) {
+          console.error("Error fetching seller user details:", e);
+        }
+      }
+
+      // 3. Fetch products for this shop/seller
       const prodRes = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${shopData.owner_id}`);
       if (!prodRes.ok) throw new Error('Failed to fetch products');
       const prodData = await prodRes.json();
@@ -114,13 +128,13 @@ export default function ShopDetailsScreen() {
             {shop.phone && (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="call" size={12} color={colors.grayish} style={{ marginRight: 4 }} />
-                <Text style={{ color: colors.grayish, fontSize: 12 }}>{shop.phone}</Text>
+                <Text style={{ color: colors.grayish, fontSize: 12 }}>{sellerUser?.phoneNumber || shop?.phone || 'N/A'}</Text>
               </View>
             )}
             {shop.email && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                 <Ionicons name="mail" size={12} color={colors.grayish} style={{ marginRight: 4 }} />
-                <Text style={{ color: colors.grayish, fontSize: 12 }}>{shop.email}</Text>
+                <Text style={{ color: colors.grayish, fontSize: 12 }}>{sellerUser?.email || shop?.email || 'N/A'}</Text>
               </View>
             )}
           </View>
@@ -190,11 +204,11 @@ export default function ShopDetailsScreen() {
         }
       />
       <View style={styles.fixedContacts}>
-        <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(shop?.phone)}>
+        <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(sellerUser?.phoneNumber)}>
           <Ionicons name="call" size={18} color={colors.light} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(shop?.email)}>
+        <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(sellerUser?.email)}>
           <Ionicons name="mail" size={18} color={colors.light} />
         </TouchableOpacity>
       </View>

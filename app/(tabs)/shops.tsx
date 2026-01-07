@@ -3,7 +3,7 @@ import FloatingButton from '@/components/ui/FloatingBtn';
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
-import { GET_SHOPS_API_URL, Shop } from '@/types/product';
+import { GET_SHOPS_API_URL, Product, PRODUCTS_API_URL, Shop } from '@/types/product';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -37,10 +37,34 @@ export default function ShopsScreen() {
     try {
       setError(null);
       if (!isRefresing) setLoading(true);
-      const res = await fetch(GET_SHOPS_API_URL);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setShops(data);
+
+      const [shopsRes, productsRes] = await Promise.all([
+        fetch(GET_SHOPS_API_URL),
+        fetch(PRODUCTS_API_URL)
+      ]);
+
+      const shopsData: Shop[] = await shopsRes.json();
+      const productsData: Product[] = await productsRes.json();
+
+      if (Array.isArray(shopsData) && Array.isArray(productsData)) {
+        // Count products per seller
+        const counts: Record<string, number> = {};
+        productsData.forEach(p => {
+          const ownerId = p.product_owner_id;
+          if (ownerId) {
+            counts[ownerId] = (counts[ownerId] || 0) + 1;
+          }
+        });
+
+        // Attach counts to shops
+        const shopsWithCounts = shopsData.map(shop => ({
+          ...shop,
+          productCount: counts[shop.owner_id] || 0
+        }));
+
+        setShops(shopsWithCounts);
+      } else if (Array.isArray(shopsData)) {
+        setShops(shopsData);
       }
     } catch (error) {
       console.error("Error fetching shops:", error);
@@ -146,6 +170,13 @@ export default function ShopsScreen() {
         <Text numberOfLines={2} style={styles.desc}>
           {item.description}
         </Text>
+
+        <View style={styles.productCount}>
+          <Text style={{ color: colors.grayish, fontSize: 12 }}>{item.productCount || 0} Products</Text>
+          {/* <TouchableOpacity onPress={() => {}}>
+            <Ionicons name='location' size={18} color={colors.lightgray}/>
+          </TouchableOpacity> */}
+        </View>
 
         <TouchableOpacity style={styles.visitBtn}
           onPress={() => router.push(`/Screens/${item._id}`)}
@@ -345,4 +376,13 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '600'
   },
+  productCount: {
+    borderTopColor: colors.lightgray,
+    borderTopWidth: 1,
+    paddingBottom: 2,
+    padding: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  }
 });
