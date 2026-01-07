@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-// import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { SELLER_REGISTER_API_URL } from "@/types/product";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function SellerRegistrationScreen() {
   const [shopName, setShopName] = useState("");
@@ -21,21 +21,34 @@ export default function SellerRegistrationScreen() {
   const [loading, setLoading] = useState(false);
 
   // Calculate progress
-  const totalFields = 3; // shopName, description, location (simulate with description for now)
+  const totalFields = 6; // shopName, slogan, description, profileImage, coverImage, location
   const filledFields =
-    (shopName ? 1 : 0) + (shopDescription.length >= 50 ? 1 : 0);
+    (shopName ? 1 : 0) +
+    (shopSlogan ? 1 : 0) +
+    (shopDescription.length >= 50 ? 1 : 0) +
+    (profileImage ? 1 : 0) +
+    (coverImage ? 1 : 0) +
+    1; // location (defaulted for now)
   const progress = (filledFields / totalFields) * 100;
 
-  //   const pickImage = async (setter) => {
-  //     const result = await ImagePicker.launchImageLibraryAsync({
-  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //       quality: 1,
-  //     });
+  const pickImage = async (setter: (uri: string | null) => void, aspect: [number, number] = [1, 1]) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: aspect,
+        quality: 0.2,
+        base64: true,
+      });
 
-  //     if (!result.canceled) {
-  //       setter(result.assets[0].uri);
-  //     }
-  //   };
+      if (!result.canceled && result.assets[0].base64) {
+        setter(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+      console.error(error);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!user) return Alert.alert("Authentication", "Please log in to apply.");
@@ -69,7 +82,7 @@ export default function SellerRegistrationScreen() {
 
       if (response.ok && data.success) {
         Alert.alert("Success", data.message || "Seller Application Submitted!");
-        router.replace('/Seller/seller'); // Navigate to seller dashboard
+        router.replace('/(tabs)/account'); // Navigate to seller dashboard
       } else {
         Alert.alert("Error", data.message || "Failed to submit application");
       }
@@ -150,7 +163,9 @@ export default function SellerRegistrationScreen() {
           cursorColor={colors.primary}
         />
         <View style={styles.charCount}>
-          <Text style={{ color: "red" }}>Min 50 chars</Text>
+          <Text style={{ color: shopDescription.length >= 50 ? "#22C55E" : "red" }}>
+            {shopDescription.length >= 50 ? "Length Reached" : "Min 50 chars"}
+          </Text>
           <Text style={{ color: colors.grayish }}>{shopDescription.length}/500</Text>
         </View>
       </View>
@@ -164,7 +179,7 @@ export default function SellerRegistrationScreen() {
 
         <Text style={styles.label}>Profile Picture</Text>
         <TouchableOpacity style={styles.imagePicker}
-        // onPress={() => pickImage(setProfileImage)}
+          onPress={() => pickImage(setProfileImage)}
         >
           {profileImage ? (
             <Image source={{ uri: Array.isArray(profileImage) ? profileImage[0] : profileImage }} style={styles.imagePreview} />
@@ -179,7 +194,7 @@ export default function SellerRegistrationScreen() {
 
         <Text style={styles.label}>Cover Photo</Text>
         <TouchableOpacity style={styles.coverPicker}
-        // onPress={() => pickImage(setCoverImage)}
+          onPress={() => pickImage(setCoverImage, [3, 1])}
         >
           {coverImage ? (
             <Image source={{ uri: Array.isArray(coverImage) ? coverImage[0] : coverImage }} style={styles.coverPreview} />
@@ -200,11 +215,17 @@ export default function SellerRegistrationScreen() {
             styles.submitBtn,
             { backgroundColor: progress >= 80 ? colors.primary : colors.grayish },
           ]}
-          disabled={progress < 80}
+          disabled={progress < 80 || loading}
           onPress={handleSubmit}
         >
-          <MaterialIcons name="check-circle" size={20} color="white" />
-          <Text style={styles.submitText}>Submit Seller Application</Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <MaterialIcons name="check-circle" size={20} color="white" />
+              <Text style={styles.submitText}>Submit Seller Application</Text>
+            </>
+          )}
         </TouchableOpacity>
         <Text style={[styles.helperText, { textAlign: "center", marginTop: 5 }]}>
           Please complete at least 80% of the form to submit.

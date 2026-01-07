@@ -225,6 +225,7 @@ const Account = () => {
             <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
           </TouchableOpacity>
         </View>
+        <Text style={{ marginTop: 16, textAlign: 'center', color: colors.grayish }}>Developed by Aurex Labs</Text>
       </View>
 
       <Modal
