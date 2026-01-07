@@ -2,6 +2,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { UPDATE_USER_API_URL } from "@/types/product";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -18,6 +19,7 @@ export default function UserProfile() {
   const [editData, setEditData] = useState({
     username: user?.username || "",
     phone: user?.phoneNumber || "",
+    profilePicture: user?.profilePicture || "",
   });
 
   const displayUser = {
@@ -25,7 +27,34 @@ export default function UserProfile() {
     email: user?.email || "No email provided",
     phone: user?.phoneNumber || "Not set",
     address: "Kampala, Uganda",
-    avatar: user?.profilePicture || "https://ui-avatars.com/api/?name=" + (user?.username || "Guest") + "&background=random",
+    avatar: editData.profilePicture || "https://ui-avatars.com/api/?name=" + (user?.username || "Guest") + "&background=random",
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [5, 4],
+        quality: 0.1,
+        base64: true,
+        allowsMultipleSelection: false,
+        selectionLimit: 1,  
+
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        setEditData(prev => ({
+          ...prev,
+          profilePicture: `data:image/jpeg;base64,${result.assets[0].base64}`
+        }));
+        // If not already in editing mode, we might want to trigger it or just show the chance
+        if (!isEditing) setIsEditing(true);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+      console.error(error);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -43,6 +72,7 @@ export default function UserProfile() {
           ...user,
           username: editData.username,
           phoneNumber: editData.phone,
+          profilePicture: editData.profilePicture,
           updatedAt: Date.now(),
         }
       };
@@ -90,8 +120,9 @@ export default function UserProfile() {
             <Image
               source={{ uri: displayUser.avatar }}
               style={styles.avatar}
+              resizeMode="contain"
             />
-            <TouchableOpacity style={styles.editAvatarBtn}>
+            <TouchableOpacity style={styles.editAvatarBtn} onPress={pickImage}>
               <Feather name="camera" size={16} color={colors.background} />
             </TouchableOpacity>
           </View>
@@ -181,7 +212,7 @@ export default function UserProfile() {
           {isEditing ? (
             <View style={styles.editActions}>
               <TouchableOpacity
-                style={[styles.editBtn, { flex: 1, backgroundColor: colors.grayish + '20' }]}
+                style={[styles.editBtn, { flex: 1, backgroundColor: 'red' }]}
                 onPress={() => setIsEditing(false)}
                 disabled={loading}
               >
@@ -293,12 +324,12 @@ const appStyles = (colors: any) => StyleSheet.create({
     letterSpacing: 1,
   },
   infoContainer: {
-    padding: 20,
+    padding: 10,
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.grayish,
+    color: colors.text,
     marginBottom: 12,
     marginLeft: 4,
     textTransform: 'uppercase',
@@ -313,7 +344,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
     borderWidth: 1,
-    borderColor: colors.borderLine,
+    borderColor: colors.border,
   },
   infoItem: {
     flexDirection: "row",
@@ -345,7 +376,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: colors.borderLine,
+    backgroundColor: colors.grayish,
     marginHorizontal: 16,
   },
   editBtn: {

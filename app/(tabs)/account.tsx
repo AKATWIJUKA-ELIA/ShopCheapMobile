@@ -1,22 +1,23 @@
 import AddressScreen from '@/components/Account/DeliveryAddress';
 import RefreshScrollView from '@/components/RefreshScrollView';
-import AccountSettings, { openSettingsPopUp } from '@/components/ui/dark-mode';
+import AccountSettings, { openSettingsPopUp, usePopUpState } from '@/components/ui/dark-mode';
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
-import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Modal, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
+import ChangePasswordModal from '@/components/Account/ChangePasswordModal';
 
 const { height } = Dimensions.get("window");
 
 const Account = () => {
-  const { colors, theme } = useTheme();
+  const { colors, theme, toggleTheme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const router = useRouter();
 
@@ -68,6 +69,18 @@ const Account = () => {
     router.replace('/(tabs)/home');
   };
 
+
+  //settins
+   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const darkThemeEnabled = theme === 'dark';
+    const { isPopUpOpen } = usePopUpState();
+    const [isChangePassOpen, setIsChangePassOpen] = useState(false);
+
+  
+    const handleChangePassword = () => {
+      setIsChangePassOpen(true);
+    };
+
   return (
     <RefreshScrollView style={styles.container}>
       <View style={styles.header}>
@@ -75,8 +88,8 @@ const Account = () => {
           <Image
             source={{ uri: user?.profilePicture || 'https://avatars.githubusercontent.com/u/143481214?v=4' }}
             style={{
-              width: 70,
-              height: 70,
+              width: 76,
+              height: 76,
               borderRadius: 99
             }}
           />
@@ -157,13 +170,44 @@ const Account = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         <View>
-          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
+          {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
             <View style={styles.itemLeft}>
               <Ionicons name='settings-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Settings</Text>
             </View>
             <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+          </TouchableOpacity> */}
+
+          <View style={[styles.item, darkThemeEnabled && styles.darkCard]}>
+            <View style={styles.itemLeft}>
+              <Ionicons name={darkThemeEnabled ? 'moon' : 'sunny'} size={24} color={colors.text} />
+              <Text style={[styles.itemLabel,]}>{darkThemeEnabled ? 'Dark Mode' : 'Light Mode'}</Text>
+            </View>
+            <Switch value={darkThemeEnabled}
+              onValueChange={toggleTheme}
+              thumbColor={colors.text}
+            // trackColor={{ false: Colors.gray, true: Colors.primary }} 
+            />
+          </View>
+
+          <TouchableOpacity style={[styles.item, darkThemeEnabled && styles.darkCard]} onPress={handleChangePassword} activeOpacity={0.7}>
+            <View style={styles.itemLeft}>
+              <MaterialIcons name='security' size={24} color={colors.text} />
+              <Text style={[styles.itemLabel, darkThemeEnabled && { color: colors.text }]}>Change Password</Text>
+            </View>
+            <Feather name="chevron-right" size={24} color={colors.text} />
           </TouchableOpacity>
+
+          <Link href='https://shopcheapug.com' asChild style={[styles.item,]}>
+            <TouchableOpacity style={[styles.item, darkThemeEnabled && styles.darkCard]}>
+              <View style={styles.itemLeft}>
+                <MaterialIcons name='privacy-tip' size={24} color={colors.text} />
+                <Text style={[styles.itemLabel,]}>Privacy Policy</Text>
+              </View>
+              <Feather name="chevron-right" size={24} color={colors.grayish} />
+            </TouchableOpacity>
+          </Link>
+          
 
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('https://www.shopcheapug.com/about')}>
             <View style={styles.itemLeft}>
@@ -230,9 +274,14 @@ const Account = () => {
           </PanGestureHandler>
         </BlurView>
       </Modal>
+      
 
       <AccountSettings />
       <HelpCenter />
+      <ChangePasswordModal
+        visible={isChangePassOpen}
+        onClose={() => setIsChangePassOpen(false)}
+      />
     </RefreshScrollView>
   );
 };
@@ -371,5 +420,26 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.primary,
+  },
+  settingCard: {
+    backgroundColor: colors.gray,
+    padding: 14,
+    borderRadius: 99,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    borderColor: '#11111147',
+    borderWidth: 1
+  },
+  darkCard: {
+  },
+  settingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.light,
   },
 });

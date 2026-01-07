@@ -133,7 +133,7 @@ const Cart = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(modals)/checkout')}
+          {/* <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(modals)/checkout')}
             style={{
               backgroundColor: colors.primary,
               padding: 12,
@@ -152,7 +152,7 @@ const Cart = () => {
             }}>
               Checkout
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
         </View>
       </RefreshScrollView>

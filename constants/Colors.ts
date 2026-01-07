@@ -14,7 +14,7 @@ export const Colors = {
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'black',
-  card:'#8e8f916f',
+  card:'#29333b',
 }
 
 export const lightColors = {
@@ -30,6 +30,6 @@ export const lightColors = {
   input: "#1a1a1a",
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'white',
-  card:'#d1d5db',
+  card:'#d6deeaff',
 }
 

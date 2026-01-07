@@ -144,6 +144,8 @@ export default function SellerRegistrationScreen() {
           value={shopDescription}
           onChangeText={setShopDescription}
           multiline
+          maxLength={500}
+          textAlignVertical="top"
           numberOfLines={16}
           cursorColor={colors.primary}
         />

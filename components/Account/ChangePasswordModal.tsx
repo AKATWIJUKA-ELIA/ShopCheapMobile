@@ -97,6 +97,8 @@ export default function ChangePasswordModal({ visible, onClose }: ChangePassword
             onClose={onClose}
             heightPercent={0.62}
             widthPercent={0.85}
+            blurType={'dark'}
+            blurAmount={5}
         >
             <View style={styles.header}>
                 <Text style={styles.title}>Change Password</Text>
