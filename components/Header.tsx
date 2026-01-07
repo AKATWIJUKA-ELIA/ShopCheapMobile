@@ -67,22 +67,24 @@ const HomeHeader = () => {
                 style={styles.avatar}
               /> */}
 
-        {/* Search Icon */}
-        <TouchableOpacity style={[styles.iconButton, { right: 0, left: 'auto' }]} onPress={toggleSearch}>
-          <Ionicons name="search" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Search Icon */}
+          <TouchableOpacity style={[styles.iconButton, { right: 0, left: 'auto' }]} onPress={toggleSearch}>
+            <Ionicons name="search" size={24} color={colors.primary} />
+          </TouchableOpacity>
 
-        {/* Cart with badge (distinct products count) */}
-        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.85}>
-          <View>
-            <Ionicons name="cart-outline" size={24} color={colors.primary} />
-            {distinctCount > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{distinctCount > 99 ? '99+' : distinctCount}</Text>
-              </View>
-            ) : null}
-          </View>
-        </TouchableOpacity>
+          {/* Cart with badge (distinct products count) */}
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.85}>
+            <View>
+              <Ionicons name="cart-outline" size={24} color={colors.primary} />
+              {distinctCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{distinctCount > 99 ? '99+' : distinctCount}</Text>
+                </View>
+              ) : null}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <HelpCenter />

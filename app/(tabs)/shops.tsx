@@ -128,9 +128,9 @@ export default function ShopsScreen() {
     return (
       <View style={styles.hero}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-          <TouchableOpacity style={styles.heroIcon} onPress={() => router.push('/Seller/(SellerDashboard)/shop')}>
+          <View style={styles.heroIcon}>
             <MaterialIcons name="storefront" size={26} color={colors.light} />
-          </TouchableOpacity>
+          </View>
           <Text style={styles.heroTitle}>Explore Shops</Text>
         </View>
         <Text style={styles.heroSubtitle}>

@@ -1,4 +1,4 @@
-import Banner from '@/components/Banner'
+import Banner, { BannerItem } from '@/components/Banner'
 import CategoryTile from '@/components/CategoryTile'
 import RenderItem from '@/components/RenderItem'
 import SectionHeader from '@/components/SectionHeader'
@@ -8,10 +8,10 @@ import HelpCenter, { openHelpSideBar } from '@/components/ui/help'
 import { Colors } from '@/constants/Colors'
 import { banners as bannerImages } from '@/constants/data'
 import { useTheme } from '@/contexts/ThemeContext'
-import { CATEGORIES_API_URL, Category, Product, PRODUCTS_API_URL } from '@/types/product'
+import { CATEGORIES_API_URL, Category, GET_SHOPS_API_URL, Product, PRODUCTS_API_URL } from '@/types/product'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native'
 
 const banners = bannerImages;
 
@@ -27,6 +27,7 @@ const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sortMode, setSortMode] = useState<'default' | 'price_asc' | 'price_desc' | 'alpha_asc' | 'alpha_desc'>('default');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [bannerItems, setBannerItems] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,22 +36,36 @@ const Home = () => {
       setLoading(true);
       setError(null);
 
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, shopsRes] = await Promise.all([
         fetch(PRODUCTS_API_URL),
-        fetch(CATEGORIES_API_URL)
+        fetch(CATEGORIES_API_URL),
+        fetch(GET_SHOPS_API_URL)
       ]);
 
-      if (!productsRes.ok || !categoriesRes.ok) {
+      if (!productsRes.ok || !categoriesRes.ok || !shopsRes.ok) {
         throw new Error('Failed to fetch data');
       }
 
-      const [productsData, categoriesData] = await Promise.all([
+      const [productsData, categoriesData, shopsData] = await Promise.all([
         productsRes.json(),
-        categoriesRes.json()
+        categoriesRes.json(),
+        shopsRes.json()
       ]);
 
       setProducts(productsData.filter((item: Product) => item.approved));
       setCategories(categoriesData);
+
+      // Extract shop banner items (cover, id, name)
+      if (Array.isArray(shopsData)) {
+        const items: BannerItem[] = shopsData
+          .map(shop => ({
+            id: shop._id,
+            title: shop.shop_name,
+            uri: Array.isArray(shop.cover_image) ? shop.cover_image[0] : shop.cover_image
+          }))
+          .filter(item => item.uri && typeof item.uri === 'string');
+        setBannerItems(items);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -102,7 +117,7 @@ const Home = () => {
   const HeroSection = () => {
     return (
       <View style={{ backgroundColor: colors.background, flex: 1 }}>
-        <Banner images={banners as any} />
+        <Banner images={bannerItems.length > 0 ? bannerItems : (banners as any)}/>
         <SectionHeader title='Top Categories' actionText='See all' onActionPress={() => router.push('/(tabs)/categories')} />
         <ScrollView horizontal style={styles.categoriesWrap}
           showsHorizontalScrollIndicator={false}
