@@ -21,6 +21,7 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/material-top-tabs": "^7.4.10",
     "@react-navigation/native": "^7.1.6",
+    "bcryptjs": "^3.0.3",
     "convex": "^1.31.1",
     "expo": "~53.0.22",
     "expo-blur": "~14.1.5",
@@ -35,6 +36,7 @@
     "expo-location": "~18.1.6",
     "expo-notifications": "~0.31.4",
     "expo-router": "~5.1.5",
+    "expo-secure-store": "~14.2.4",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
@@ -50,14 +52,15 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-toast-message": "^2.3.3",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "zod": "^4.3.5",
-    "zustand": "^5.0.9",
-    "expo-secure-store": "~14.2.4"
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",

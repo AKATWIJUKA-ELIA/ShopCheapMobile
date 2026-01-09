@@ -1,11 +1,14 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { CREATE_PRODUCT_API_URL } from '@/types/product';
+import { showToast } from '@/utils/toast';
+import { uploadImages } from '@/utils/upload';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // const COLORS = {
 //   primary: '#f97316',
@@ -37,7 +40,31 @@ export default function AddProductScreen() {
   const styles = useMemo(() => appStyles(colors), [colors]);
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
   const [images, setImages] = useState<string[]>([]);
+
+  const pickImages = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 5 - images.length,
+        quality: 0.3,
+      });
+
+      if (!result.canceled) {
+        const newImages = result.assets.map(asset => asset.uri);
+        setImages(prev => [...prev, ...newImages].slice(0, 5));
+      }
+    } catch (error) {
+      showToast("Failed to pick images", "error");
+      console.error(error);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -193,21 +220,42 @@ export default function AddProductScreen() {
               styles.imageDropZone,
               { backgroundColor: colors.card, borderColor: colors.lightgray },
             ]}
+            onPress={pickImages}
+            disabled={images.length >= 5}
           >
             <View style={styles.imageIcon}>
               <MaterialIcons name="add-photo-alternate" size={28} color={colors.gray} />
             </View>
-            <Text style={[styles.label, { color: colors.grayish }]}>Drop images here or click to upload</Text>
+            <Text style={[styles.label, { color: colors.grayish }]}>
+              {images.length >= 5 ? "Maximum 5 images reached" : "Tap to upload images"}
+            </Text>
             <Text style={[styles.smallText, { color: colors.grayish }]}>PNG, JPG, GIF up to 3 MB each</Text>
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', marginTop: 12, justifyContent: 'space-between' }}>
-            {Array(5).fill(0).map((_, i) => (
+          <View style={{ flexDirection: 'row', marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
+            {images.map((uri, i) => (
               <View
                 key={i}
                 style={[
-                  { flex: 1, aspectRatio: 1, marginRight: i < 4 ? 8 : 0 },
-                  { borderRadius: 12, backgroundColor: colors.gray, borderWidth: 1, borderColor: colors.lightgray },
+                  { width: '18%', aspectRatio: 1 },
+                  { borderRadius: 12, backgroundColor: colors.gray, borderWidth: 1, borderColor: colors.lightgray, overflow: 'hidden' },
+                ]}
+              >
+                <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                <TouchableOpacity
+                  onPress={() => removeImage(i)}
+                  style={{ position: 'absolute', top: 2, right: 2, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10 }}
+                >
+                  <MaterialIcons name="close" size={16} color="white" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {Array(Math.max(0, 5 - images.length)).fill(0).map((_, i) => (
+              <View
+                key={`empty-${i}`}
+                style={[
+                  { width: '18%', aspectRatio: 1 },
+                  { borderRadius: 12, backgroundColor: colors.gray, borderWidth: 1, borderColor: colors.lightgray, borderStyle: 'dashed' },
                 ]}
               />
             ))}
@@ -217,13 +265,23 @@ export default function AddProductScreen() {
           <TouchableOpacity
             style={[styles.postButton, { opacity: loading ? 0.7 : 1 }]}
             onPress={async () => {
-              if (!user) return Alert.alert("Authentication", "Please log in to add products.");
+              if (!user) return showToast("Please log in to add products.", "error");
               if (!productName || !price || !category || !condition) {
-                return Alert.alert("Validation", "Please fill in all required fields.");
+                return showToast("Please fill in all required fields.", "error");
               }
 
               try {
                 setLoading(true);
+
+                // Upload images first
+                let finalImages = ["https://via.placeholder.com/320"];
+                if (images.length > 0) {
+                  setLoadingStatus(`Uploading ${images.length} image(s)...`);
+                  finalImages = await uploadImages(images);
+                }
+
+                setLoadingStatus("Saving product...");
+
                 const response = await fetch(CREATE_PRODUCT_API_URL, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -234,7 +292,7 @@ export default function AddProductScreen() {
                       product_description: description,
                       product_category: category,
                       product_condition: condition,
-                      product_image: images.length > 0 ? images : ["https://via.placeholder.com/320"],
+                      product_image: finalImages,
                       product_owner_id: user._id,
                       approved: false, // Default to unapproved
                       product_discount: parseFloat(discount) || 0,
@@ -245,22 +303,28 @@ export default function AddProductScreen() {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                  Alert.alert("Success", "Product listed successfully! It will be visible after approval.");
+                  showToast("Product listed successfully! It will be visible after approval.", "success");
                   router.back();
                 } else {
-                  Alert.alert("Error", data.message || "Failed to add product");
+                  showToast(data.message || "Failed to add product", "error");
                 }
               } catch (error) {
-                Alert.alert("Error", "An unexpected error occurred.");
+                showToast("An unexpected error occurred.", "error");
                 console.error(error);
               } finally {
                 setLoading(false);
+                setLoadingStatus("");
               }
             }}
             disabled={loading}
           >
             <Text style={styles.postButtonText}>
-              {loading ? "Posting..." : "Post Product"}
+              {loading ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator color="white" size="small" />
+                  <Text style={[styles.postButtonText, { marginLeft: 10, fontSize: 14 }]}>{loadingStatus}</Text>
+                </View>
+              ) : "Post Product"}
             </Text>
           </TouchableOpacity>
         </View>

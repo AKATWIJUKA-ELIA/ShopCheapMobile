@@ -1,6 +1,8 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { SELLER_REGISTER_API_URL } from "@/types/product";
+import { showToast } from "@/utils/toast";
+import { uploadImages } from "@/utils/upload";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -11,14 +13,15 @@ export default function SellerRegistrationScreen() {
   const [shopName, setShopName] = useState("");
   const [shopSlogan, setShopSlogan] = useState("");
   const [shopDescription, setShopDescription] = useState("");
-  const [profileImage, setProfileImage] = useState(null);
-  const [coverImage, setCoverImage] = useState(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
 
   const { colors, theme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const router = useRouter();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
 
   // Calculate progress
   const totalFields = 6; // shopName, slogan, description, profileImage, coverImage, location
@@ -38,11 +41,11 @@ export default function SellerRegistrationScreen() {
         allowsEditing: true,
         aspect: aspect,
         quality: 0.2,
-        base64: true,
+        base64: false,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
-        setter(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      if (!result.canceled) {
+        setter(result.assets[0].uri);
       }
     } catch (error) {
       Alert.alert("Error", "Failed to pick image");
@@ -51,16 +54,35 @@ export default function SellerRegistrationScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return Alert.alert("Authentication", "Please log in to apply.");
-    if (!shopName) return Alert.alert("Validation Error", "Shop Name is required!");
+    if (!user) return showToast("Please log in to apply.", "error");
+    if (!shopName) return showToast("Shop Name is required!", "error");
     if (shopDescription.length < 50)
-      return Alert.alert(
-        "Validation Error",
-        "Shop Description must be at least 50 characters!"
+      return showToast(
+        "Shop Description must be at least 50 characters!",
+        "error"
       );
 
     try {
       setLoading(true);
+
+      // Upload images if they are local URIs
+      let finalProfileImage = profileImage;
+      let finalCoverImage = coverImage;
+
+      if (profileImage && (profileImage.startsWith('file://') || profileImage.startsWith('content://'))) {
+        setLoadingStatus("Uploading profile image...");
+        const ids = await uploadImages([profileImage]);
+        if (ids.length > 0) finalProfileImage = ids[0];
+      }
+
+      if (coverImage && (coverImage.startsWith('file://') || coverImage.startsWith('content://'))) {
+        setLoadingStatus("Uploading cover photo...");
+        const ids = await uploadImages([coverImage]);
+        if (ids.length > 0) finalCoverImage = ids[0];
+      }
+
+      setLoadingStatus("Submitting application...");
+
       const response = await fetch(SELLER_REGISTER_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,9 +90,9 @@ export default function SellerRegistrationScreen() {
           user_id: user._id,
           store_name: shopName,
           description: shopDescription,
-          profile_image: profileImage || 'https://via.placeholder.com/200',
+          profile_image: finalProfileImage || 'https://via.placeholder.com/200',
           slogan: shopSlogan,
-          cover_image: coverImage || 'https://via.placeholder.com/1200x400',
+          cover_image: finalCoverImage || 'https://via.placeholder.com/1200x400',
           location: {
             lat: 0.3476, // TODO: Get actual location
             lng: 32.5825
@@ -81,16 +103,17 @@ export default function SellerRegistrationScreen() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        Alert.alert("Success", data.message || "Seller Application Submitted!");
+        showToast(data.message || "Seller Application Submitted!", "success");
         router.replace('/(tabs)/account'); // Navigate to seller dashboard
       } else {
-        Alert.alert("Error", data.message || "Failed to submit application");
+        showToast(data.message || "Failed to submit application", "error");
       }
     } catch (error) {
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      showToast("An unexpected error occurred. Please try again.", "error");
       console.error("Seller registration error:", error);
     } finally {
       setLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -213,13 +236,16 @@ export default function SellerRegistrationScreen() {
         <TouchableOpacity
           style={[
             styles.submitBtn,
-            { backgroundColor: progress >= 80 ? colors.primary : colors.grayish },
+            { backgroundColor: (shopName && shopDescription.length >= 50) ? colors.primary : colors.grayish },
           ]}
-          disabled={progress < 80 || loading}
+          disabled={!shopName || shopDescription.length < 50 || loading}
           onPress={handleSubmit}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={[styles.submitText, { fontSize: 14 }]}>{loadingStatus}</Text>
+            </View>
           ) : (
             <>
               <MaterialIcons name="check-circle" size={20} color="white" />
@@ -228,7 +254,7 @@ export default function SellerRegistrationScreen() {
           )}
         </TouchableOpacity>
         <Text style={[styles.helperText, { textAlign: "center", marginTop: 5 }]}>
-          Please complete at least 80% of the form to submit.
+          Please complete the required fields (*) to submit.
         </Text>
       </View>
     </ScrollView>

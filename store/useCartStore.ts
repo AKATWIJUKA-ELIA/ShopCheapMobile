@@ -231,12 +231,19 @@ export const useCartStore = create<CartState>()(
                         return item;
                     }).filter((p: any) => p && p._id);
 
-                    set({
-                        wishlistItems: sanitizedBookmarks,
-                        wishlistIds: sanitizedBookmarks.map((p: any) => p._id)
-                    });
+                    // Compare IDs to see if they changed
+                    const currentIds = get().wishlistIds;
+                    const newIds = sanitizedBookmarks.map((p: any) => p._id);
 
-                    console.log(`[BookmarkSync] Updated state with ${sanitizedBookmarks.length} items`);
+                    if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+                        set({
+                            wishlistItems: sanitizedBookmarks,
+                            wishlistIds: newIds
+                        });
+                        console.log(`[BookmarkSync] Updated state with ${sanitizedBookmarks.length} items`);
+                    } else {
+                        console.log(`[BookmarkSync] No changes detected in bookmarks`);
+                    }
                 } catch (error) {
                     console.error("[BookmarkSync] Error fetching bookmarks:", error);
                 }
@@ -265,18 +272,31 @@ export const useCartStore = create<CartState>()(
                             product: item.product,
                             quantity: item.quantity
                         }));
-                        set({ items: cartItems });
-                        get().recompute();
-                        console.log(`[CartSync] Cart state updated with ${cartItems.length} items`);
+
+                        // Simple check to avoid redundant sets if nothing changed
+                        const currentItems = get().items;
+                        if (JSON.stringify(currentItems) !== JSON.stringify(cartItems)) {
+                            set({ items: cartItems });
+                            get().recompute();
+                            console.log(`[CartSync] Cart state updated with ${cartItems.length} items`);
+                        } else {
+                            console.log(`[CartSync] No changes detected in cart`);
+                        }
                     } else if (data && typeof data === 'object' && Array.isArray(data.cart)) {
                         // Handle potential { success: true, cart: [...] } format
                         const cartItems: CartItem[] = data.cart.map((item: any) => ({
                             product: item.product,
                             quantity: item.quantity
                         }));
-                        set({ items: cartItems });
-                        get().recompute();
-                        console.log(`[CartSync] Cart state updated with ${cartItems.length} items (nested object)`);
+
+                        const currentItems = get().items;
+                        if (JSON.stringify(currentItems) !== JSON.stringify(cartItems)) {
+                            set({ items: cartItems });
+                            get().recompute();
+                            console.log(`[CartSync] Cart state updated with ${cartItems.length} items (nested object)`);
+                        } else {
+                            console.log(`[CartSync] No changes detected in cart (nested object)`);
+                        }
                     } else {
                         console.warn("[CartSync] Unexpected data format:", data);
                     }

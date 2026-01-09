@@ -11,7 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { CATEGORIES_API_URL, Category, GET_SHOPS_API_URL, Product, PRODUCTS_API_URL } from '@/types/product'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native'
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 const banners = bannerImages;
 
@@ -117,7 +117,7 @@ const Home = () => {
   const HeroSection = () => {
     return (
       <View style={{ backgroundColor: colors.background, flex: 1 }}>
-        <Banner images={bannerItems.length > 0 ? bannerItems : (banners as any)}/>
+        <Banner images={bannerItems.length > 0 ? bannerItems : (banners as any)} />
         <SectionHeader title='Top Categories' actionText='See all' onActionPress={() => router.push('/(tabs)/categories')} />
         <ScrollView horizontal style={styles.categoriesWrap}
           showsHorizontalScrollIndicator={false}

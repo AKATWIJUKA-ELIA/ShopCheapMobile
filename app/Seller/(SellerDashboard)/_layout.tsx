@@ -9,9 +9,11 @@ const SellerDashboardLayout = () => {
   return (
     <Tabs screenOptions={{
         // headerShown:false,
-        tabBarStyle:{ backgroundColor: Colors.gray, height:60, paddingTop:4 },
+        tabBarStyle: { backgroundColor: Colors.background, height: 60, paddingBottom: 20 },
         tabBarActiveTintColor:Colors.primary,
         tabBarInactiveTintColor:Colors.light,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         header:() => (
             <View style={{height:50, alignItems:'center', justifyContent:'center', backgroundColor:Colors.gray, flexDirection:'row'}}>
                 <TouchableOpacity onPress={()=> router.push('/(tabs)/home')}>
@@ -21,7 +23,6 @@ const SellerDashboardLayout = () => {
                 <Text style={{color:Colors.primary, fontSize:18, fontWeight:'700'}}>Seller Dashboard</Text>
             </View>
         ),
-        tabBarLabelStyle:{fontSize:12, fontWeight:'700'},
     }}>
       <Tabs.Screen name='index'
         options={{

@@ -123,3 +123,26 @@ export const GET_SHOPS_API_URL = `${API_BASE_URL}/shops`;
 export const GET_USER_API_URL = `${API_BASE_URL}/user`;
 export const GET_BOOKMARKS_API_URL = `${API_BASE_URL}/bookmarks`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;
+export const UPLOAD_IMAGES_API_URL = `${API_BASE_URL}/upload-images`;
+
+/**
+ * Normalize image to string[] format
+ * @param image - Can be string, string[], or undefined
+ * @returns string[] or empty array
+ */
+export function normalizeImageToArray(image: string | string[] | undefined): string[] {
+    if (!image) return [];
+    if (Array.isArray(image)) return image;
+    return [image];
+}
+
+/**
+ * Get the first image from a string or string[] format
+ * @param image - Can be string, string[], or undefined
+ * @returns First image string or empty string
+ */
+export function getFirstImage(image: string | string[] | undefined): string {
+    if (!image) return '';
+    if (Array.isArray(image)) return image[0] || '';
+    return image;
+}

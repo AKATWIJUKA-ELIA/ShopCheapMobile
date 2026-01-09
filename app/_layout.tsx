@@ -11,17 +11,41 @@ import { Platform, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 function CartSync() {
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const { fetchCart, fetchBookmarks } = useCartStore();
 
   useEffect(() => {
     console.log(`[CartSync] User State Changed: ${user ? user.email + ' (' + user._id + ')' : 'Logged Out'}`);
+
+    // Initial fetch
     if (user) {
       fetchCart();
       fetchBookmarks();
+      refreshUser();
     }
+
+    // Set up periodic polling (every 10 seconds)
+    let intervalId: any;
+
+    if (user) {
+      console.log(`[CartSync] Starting periodic polling for user: ${user._id}`);
+      intervalId = setInterval(() => {
+        console.log(`[CartSync] Polling for updates...`);
+        fetchCart();
+        fetchBookmarks();
+        refreshUser();
+      }, 10000); // 10 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        console.log(`[CartSync] Clearing poll interval`);
+        clearInterval(intervalId);
+      }
+    };
   }, [user]);
 
   return null;
@@ -61,6 +85,7 @@ export default function RootLayout() {
             <CartSync />
           </SafeAreaView>
           <StatusBar barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'} />
+          <Toast />
         </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </ThemeProvider>

@@ -2,7 +2,7 @@ import RefreshScrollView from '@/components/RefreshScrollView'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useCartStore } from '@/store/useCartStore'
-import { formatPrice } from '@/types/product'
+import { formatPrice, getFirstImage } from '@/types/product'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useMemo } from 'react'
@@ -59,7 +59,7 @@ const Cart = () => {
         <View style={{ height: 12 }} />
         {items.map(ci => (
           <View key={ci.product._id} style={styles.itemRow}>
-            <Image source={{ uri: Array.isArray(ci.product.product_image) ? ci.product.product_image[0] : ci.product.product_image }} style={styles.itemImage} resizeMode="cover" />
+            <Image source={{ uri: getFirstImage(ci.product.product_image) }} style={styles.itemImage} resizeMode="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.itemTitle} numberOfLines={2}>{ci.product.product_name}</Text>
               <Text style={styles.itemPrice}>{formatPrice(parseFloat(ci.product.product_price) * ci.quantity)}</Text>

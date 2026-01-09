@@ -1,10 +1,13 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { CREATE_SHOP_API_URL } from '@/types/product';
+import { showToast } from '@/utils/toast';
+import { uploadImages } from '@/utils/upload';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CreateShopScreen() {
     const { colors } = useTheme();
@@ -15,18 +18,56 @@ export default function CreateShopScreen() {
     const [shopName, setShopName] = useState("");
     const [shopSlogan, setShopSlogan] = useState("");
     const [shopDescription, setShopDescription] = useState("");
-    const [profileImage, setProfileImage] = useState("");
-    const [coverImage, setCoverImage] = useState("");
+    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [coverImage, setCoverImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState("");
+
+    const pickImage = async (setter: (uri: string | null) => void, aspect: [number, number] = [1, 1]) => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: aspect,
+                quality: 0.2,
+            });
+
+            if (!result.canceled) {
+                setter(result.assets[0].uri);
+            }
+        } catch (error) {
+            Alert.alert("Error", "Failed to pick image");
+            console.error(error);
+        }
+    };
 
     const handleCreateShop = async () => {
         if (!user) return Alert.alert("Authentication", "Please log in to create a shop.");
         if (!shopName || !shopDescription) {
-            return Alert.alert("Validation Error", "Shop Name and Description are required!");
+            return showToast("Shop Name and Description are required!", "error");
         }
 
         try {
             setLoading(true);
+
+            // Upload images first
+            let finalProfileImage = profileImage;
+            let finalCoverImage = coverImage;
+
+            if (profileImage && (profileImage.startsWith('file://') || profileImage.startsWith('content://'))) {
+                setLoadingStatus("Uploading profile image...");
+                const ids = await uploadImages([profileImage]);
+                if (ids.length > 0) finalProfileImage = ids[0];
+            }
+
+            if (coverImage && (coverImage.startsWith('file://') || coverImage.startsWith('content://'))) {
+                setLoadingStatus("Uploading cover photo...");
+                const ids = await uploadImages([coverImage]);
+                if (ids.length > 0) finalCoverImage = ids[0];
+            }
+
+            setLoadingStatus("Creating shop...");
+
             const response = await fetch(CREATE_SHOP_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -35,8 +76,8 @@ export default function CreateShopScreen() {
                     description: shopDescription,
                     slogan: shopSlogan,
                     owner_id: user._id,
-                    profile_image: profileImage || 'https://via.placeholder.com/200',
-                    cover_image: coverImage || 'https://via.placeholder.com/1200x400',
+                    profile_image: finalProfileImage || 'https://via.placeholder.com/200',
+                    cover_image: finalCoverImage || 'https://via.placeholder.com/1200x400',
                     location: {
                         lat: 0.3476,
                         lng: 32.5825
@@ -47,16 +88,17 @@ export default function CreateShopScreen() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                Alert.alert("Success", "Shop created successfully!");
+                showToast("Shop created successfully!", "success");
                 router.replace('/Seller/seller');
             } else {
-                Alert.alert("Error", data.message || "Failed to create shop");
+                showToast(data.message || "Failed to create shop", "error");
             }
         } catch (error) {
-            Alert.alert("Error", "An unexpected error occurred.");
+            showToast("An unexpected error occurred.", "error");
             console.error(error);
         } finally {
             setLoading(false);
+            setLoadingStatus("");
         }
     };
 
@@ -104,21 +146,37 @@ export default function CreateShopScreen() {
             </View>
 
             <View style={styles.card}>
-                <Text style={styles.label}>Shop Images (URLs for now)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Profile Image URL"
-                    placeholderTextColor={colors.grayish}
-                    value={profileImage}
-                    onChangeText={setProfileImage}
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Cover Image URL"
-                    placeholderTextColor={colors.grayish}
-                    value={coverImage}
-                    onChangeText={setCoverImage}
-                />
+                <Text style={styles.label}>Shop Images</Text>
+
+                <Text style={styles.label}>Profile Picture</Text>
+                <TouchableOpacity
+                    style={[styles.input, { height: 100, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' }]}
+                    onPress={() => pickImage(setProfileImage)}
+                >
+                    {profileImage ? (
+                        <Image source={{ uri: profileImage }} style={{ width: '100%', height: '100%', borderRadius: 8 }} resizeMode="contain" />
+                    ) : (
+                        <View style={{ alignItems: 'center' }}>
+                            <MaterialIcons name="add-a-photo" size={30} color={colors.grayish} />
+                            <Text style={{ color: colors.grayish, fontSize: 12 }}>Pick Profile Image</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                <Text style={styles.label}>Cover Photo</Text>
+                <TouchableOpacity
+                    style={[styles.input, { height: 120, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' }]}
+                    onPress={() => pickImage(setCoverImage, [3, 1])}
+                >
+                    {coverImage ? (
+                        <Image source={{ uri: coverImage }} style={{ width: '100%', height: '100%', borderRadius: 8 }} resizeMode="contain" />
+                    ) : (
+                        <View style={{ alignItems: 'center' }}>
+                            <MaterialIcons name="image" size={30} color={colors.grayish} />
+                            <Text style={{ color: colors.grayish, fontSize: 12 }}>Pick Cover Photo</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
             </View>
 
             <TouchableOpacity
@@ -127,7 +185,10 @@ export default function CreateShopScreen() {
                 disabled={loading}
             >
                 {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <ActivityIndicator color="#fff" size="small" />
+                        <Text style={[styles.submitText, { marginLeft: 10, fontSize: 14 }]}>{loadingStatus}</Text>
+                    </View>
                 ) : (
                     <Text style={styles.submitText}>Create Shop</Text>
                 )}

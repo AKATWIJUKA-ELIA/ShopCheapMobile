@@ -311,7 +311,7 @@ export default function ProductModal() {
           <Text style={styles.detailLabel}>Condition:</Text>
           <Text style={styles.detailValue}>{product.product_condition || 'N/A'}</Text>
         </View>
-{/* 
+        {/* 
         <View style={styles.detailsRow}>
           <Text style={styles.detailLabel}>Product:</Text>
           <Text style={styles.detailValue}>{product.product_sponsorship?.status || 'N/A'}</Text>
@@ -420,7 +420,7 @@ export default function ProductModal() {
           </View>
           <View style={[styles.detailsRow,]}>
             <Text style={styles.detailLabel}>Email:</Text>
-            <Text style={styles.detailValue}>{product.seller.email|| 'N/A'}</Text>
+            <Text style={styles.detailValue}>{product.seller.email || 'N/A'}</Text>
           </View>
           {sellerShop?.phone && (
             <TouchableOpacity style={styles.detailsRow} onPress={() => Linking.openURL(`tel:${sellerShop.phone}`)}>

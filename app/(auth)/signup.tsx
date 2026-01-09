@@ -2,7 +2,9 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useCartStore } from '@/store/useCartStore'
 import { AUTH_API_URL, CREATE_USER_API_URL } from '@/types/product'
+import { showToast } from '@/utils/toast'
 import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'
+import bcrypt from 'bcryptjs'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
@@ -31,6 +33,11 @@ export default function Signup() {
 
     try {
       setLoading(true);
+
+      // Hash the password before sending to backend
+      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log('[Signup] Password hashed successfully');
+
       // 1. Create User
       const response = await fetch(CREATE_USER_API_URL, {
         method: 'POST',
@@ -38,7 +45,7 @@ export default function Signup() {
         body: JSON.stringify({
           username: userName,
           email,
-          passwordHash: password, // Sending plain text, backend should handle hashing if needed
+          passwordHash: hashedPassword, // Send hashed password
           phoneNumber: phone,
           isVerified: false,
           role: 'user',
@@ -68,10 +75,10 @@ export default function Signup() {
           await fetchCart();
           await fetchBookmarks();
 
-          Alert.alert('Success', 'Account created and logged in!');
+          showToast('Account created and logged in!', 'success');
           router.replace('/(tabs)/home');
         } else {
-          Alert.alert('Signup Success', 'Account created! Please log in manually.');
+          showToast('Account created! Please log in.', 'success');
           router.replace('/(auth)/login');
         }
       } else {

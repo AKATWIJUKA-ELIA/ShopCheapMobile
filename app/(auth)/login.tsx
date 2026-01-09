@@ -3,6 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useCartStore } from '@/store/useCartStore'
 import { AUTH_API_URL } from '@/types/product'
+import { showToast } from '@/utils/toast'
 import { AntDesign, Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
@@ -46,7 +47,7 @@ export default function Login() {
         const { fetchCart } = useCartStore.getState();
         await fetchCart();
 
-        Alert.alert('Success', 'Login successful!');
+        showToast('Login successful!', 'success');
         router.replace('/(tabs)/home');
       } else {
         // Error from API

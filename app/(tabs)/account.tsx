@@ -1,7 +1,9 @@
+import ChangePasswordModal from '@/components/Account/ChangePasswordModal';
 import AddressScreen from '@/components/Account/DeliveryAddress';
 import RefreshScrollView from '@/components/RefreshScrollView';
-import AccountSettings, { openSettingsPopUp, usePopUpState } from '@/components/ui/dark-mode';
+import AccountSettings, { usePopUpState } from '@/components/ui/dark-mode';
 import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
+import { UserAvatar } from '@/components/UserAvatar';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -10,9 +12,8 @@ import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, M
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Animated, Dimensions, Image, Modal, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Modal, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
-import ChangePasswordModal from '@/components/Account/ChangePasswordModal';
 
 const { height } = Dimensions.get("window");
 
@@ -71,28 +72,21 @@ const Account = () => {
 
 
   //settins
-   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const darkThemeEnabled = theme === 'dark';
-    const { isPopUpOpen } = usePopUpState();
-    const [isChangePassOpen, setIsChangePassOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const darkThemeEnabled = theme === 'dark';
+  const { isPopUpOpen } = usePopUpState();
+  const [isChangePassOpen, setIsChangePassOpen] = useState(false);
 
-  
-    const handleChangePassword = () => {
-      setIsChangePassOpen(true);
-    };
+
+  const handleChangePassword = () => {
+    setIsChangePassOpen(true);
+  };
 
   return (
     <RefreshScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Image
-            source={{ uri: user?.profilePicture || 'https://avatars.githubusercontent.com/u/143481214?v=4' }}
-            style={{
-              width: 76,
-              height: 76,
-              borderRadius: 99
-            }}
-          />
+          <UserAvatar name={user?.username || 'Guest'} size={76} />
         </View>
         <View style={{ marginLeft: 12 }}>
           <Text style={styles.name}>{isAuthenticated ? `Hello, ${user?.username}!` : 'Hello, Guest!'}</Text>
@@ -112,7 +106,7 @@ const Account = () => {
             )}
 
             {isAuthenticated && user?.role === 'seller' ? (
-              <Link href='/Seller/seller' asChild>
+              <Link href='/Seller/(SellerDashboard)' asChild>
                 <TouchableOpacity style={styles.SignInBtn}>
                   <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5, padding: 4 }}>Seller Dashboard</Text>
                 </TouchableOpacity>
@@ -207,7 +201,7 @@ const Account = () => {
               <Feather name="chevron-right" size={24} color={colors.grayish} />
             </TouchableOpacity>
           </Link>
-          
+
 
           <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('https://www.shopcheapug.com/about')}>
             <View style={styles.itemLeft}>
@@ -275,7 +269,7 @@ const Account = () => {
           </PanGestureHandler>
         </BlurView>
       </Modal>
-      
+
 
       <AccountSettings />
       <HelpCenter />

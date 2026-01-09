@@ -1,11 +1,12 @@
+import { UserAvatar } from "@/components/UserAvatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { UPDATE_USER_API_URL } from "@/types/product";
+import { showToast } from "@/utils/toast";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 
 export default function UserProfile() {
@@ -16,10 +17,10 @@ export default function UserProfile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
   const [editData, setEditData] = useState({
     username: user?.username || "",
     phone: user?.phoneNumber || "",
-    profilePicture: user?.profilePicture || "",
   });
 
   const displayUser = {
@@ -27,52 +28,25 @@ export default function UserProfile() {
     email: user?.email || "No email provided",
     phone: user?.phoneNumber || "Not set",
     address: "Kampala, Uganda",
-    avatar: editData.profilePicture || "https://ui-avatars.com/api/?name=" + (user?.username || "Guest") + "&background=random",
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [5, 4],
-        quality: 0.1,
-        base64: true,
-        allowsMultipleSelection: false,
-        selectionLimit: 1,  
-
-      });
-
-      if (!result.canceled && result.assets[0].base64) {
-        setEditData(prev => ({
-          ...prev,
-          profilePicture: `data:image/jpeg;base64,${result.assets[0].base64}`
-        }));
-        // If not already in editing mode, we might want to trigger it or just show the chance
-        if (!isEditing) setIsEditing(true);
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to pick image");
-      console.error(error);
-    }
-  };
 
   const handleUpdateProfile = async () => {
     if (!user) return;
     if (!editData.username.trim()) {
-      Alert.alert("Error", "Username cannot be empty");
+      showToast("Username cannot be empty", "error");
       return;
     }
 
     try {
       setLoading(true);
+      setLoadingStatus("Saving changes...");
 
       const payload = {
         User: {
           ...user,
           username: editData.username,
           phoneNumber: editData.phone,
-          profilePicture: editData.profilePicture,
           updatedAt: Date.now(),
         }
       };
@@ -84,19 +58,33 @@ export default function UserProfile() {
       });
 
       const data = await res.json();
+      console.log('[Profile] Update response:', JSON.stringify(data, null, 2));
 
       if (res.ok && (data.success || data.succes)) {
-        setUser(data.user);
+        // Only update user if we received valid user data
+        if (data.user && data.user._id) {
+          console.log('[Profile] Updating user with API response');
+          setUser(data.user);
+        } else {
+          // If API didn't return user data, update local state with our payload
+          console.log('[Profile] API did not return user, updating with local data');
+          setUser({
+            ...user,
+            username: editData.username,
+            phoneNumber: editData.phone,
+          });
+        }
         setIsEditing(false);
-        Alert.alert("Success", "Profile updated successfully!");
+        showToast("Profile updated successfully!", "success");
       } else {
-        Alert.alert("Error", data.message || "Failed to update profile");
+        showToast(data.message || "Failed to update profile", "error");
       }
     } catch (error) {
       console.error("Update profile error:", error);
-      Alert.alert("Error", "An unexpected error occurred");
+      showToast("An unexpected error occurred", "error");
     } finally {
       setLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -116,16 +104,7 @@ export default function UserProfile() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Profile Card */}
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: displayUser.avatar }}
-              style={styles.avatar}
-              resizeMode="contain"
-            />
-            <TouchableOpacity style={styles.editAvatarBtn} onPress={pickImage}>
-              <Feather name="camera" size={16} color={colors.background} />
-            </TouchableOpacity>
-          </View>
+          <UserAvatar name={isEditing ? editData.username : displayUser.name} size={120} />
           <Text style={styles.userName}>{displayUser.name}</Text>
           <Text style={styles.userEmail}>{displayUser.email}</Text>
 
@@ -224,7 +203,10 @@ export default function UserProfile() {
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.background} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <ActivityIndicator color={colors.background} size="small" />
+                    <Text style={[styles.editBtnText, { marginLeft: 10, fontSize: 14 }]}>{loadingStatus}</Text>
+                  </View>
                 ) : (
                   <Text style={styles.editBtnText}>Save Changes</Text>
                 )}
