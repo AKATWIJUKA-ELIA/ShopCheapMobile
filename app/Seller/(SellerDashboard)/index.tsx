@@ -12,35 +12,17 @@ const stats = [
   { label: "Active Orders", value: 0, icon: "local-shipping", iconColor: "#3B82F6" },
 ];
 
-const activities = [
-  {
-    id: "1",
-    title: "Welcome to ShopCheap!",
-    description: "Your account has been successfully created.",
-    time: "Just now",
-    icon: "notifications",
-    bg: "#DBEAFE",
-    iconColor: "#2563EB",
-  },
-  {
-    id: "2",
-    title: "Email Verified",
-    description: "You have verified your email address.",
-    time: "2 hrs ago",
-    icon: "done",
-    bg: "#FEF3C7",
-    iconColor: "#F59E0B",
-  },
-  {
-    id: "3",
-    title: "Store Setup",
-    description: "Please complete your store profile.",
-    time: "1 day ago",
-    icon: "storefront",
-    bg: "#F3E8FF",
-    iconColor: "#A855F7",
-  },
-];
+
+const getStatusIcon = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'pending': return { icon: 'pending-actions', color: '#F59E0B', bg: '#FEF3C7' };
+    case 'confirmed': return { icon: 'check-circle', color: '#10B981', bg: '#DCFCE7' };
+    case 'out-for-delivery': return { icon: 'local-shipping', color: '#3B82F6', bg: '#DBEAFE' };
+    case 'delivered': return { icon: 'done-all', color: '#047857', bg: '#D1FAE5' };
+    case 'cancelled': return { icon: 'cancel', color: '#EF4444', bg: '#FEE2E2' };
+    default: return { icon: 'notifications', color: '#2563EB', bg: '#DBEAFE' };
+  }
+};
 
 export default function SellerDashboard() {
   const { colors, theme } = useTheme();
@@ -51,6 +33,7 @@ export default function SellerDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<any[]>([]);
   const [stats, setStats] = useState([
     { label: "Total Prods", value: 0, icon: "inventory-2", iconColor: "#FF9900" },
     { label: "Pending", value: 0, icon: "pending-actions", iconColor: "#F59E0B" },
@@ -85,6 +68,21 @@ export default function SellerDashboard() {
         { label: "Orders", value: ordersList.length, icon: "shopping-bag", iconColor: "#10B981" },
         { label: "Active", value: ordersList.filter(o => ['confirmed', 'out-for-delivery'].includes(o.order_status)).length, icon: "local-shipping", iconColor: "#3B82F6" },
       ]);
+
+      // Derive Activities from Recent Orders
+      const derivedActivities = ordersList.slice(0, 5).map((o: any) => {
+        const { icon, color, bg } = getStatusIcon(o.order_status);
+        return {
+          id: o._id,
+          title: `Order #${o._id.slice(-6).toUpperCase()}`,
+          description: `Status changed to ${o.order_status}`,
+          time: new Date(o._creationTime).toLocaleDateString(),
+          icon,
+          bg,
+          iconColor: color
+        }
+      });
+      setActivities(derivedActivities);
     } catch (error) {
       console.error("Dashboard fetch error:", error);
       setError("Unable to load dashboard data. Please try again.");
@@ -140,7 +138,7 @@ export default function SellerDashboard() {
         </View>
 
         <View style={styles.activityHeader}>
-          <Text style={styles.sectionTitle}>Top 5 Recent Activities</Text>
+          <Text style={styles.sectionTitle}>Recent Activities</Text>
           <TouchableOpacity>
             <Text style={styles.viewAll}>View All</Text>
           </TouchableOpacity>

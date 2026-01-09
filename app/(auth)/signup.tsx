@@ -5,9 +5,16 @@ import { AUTH_API_URL, CREATE_USER_API_URL } from '@/types/product'
 import { showToast } from '@/utils/toast'
 import { AntDesign, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import bcrypt from 'bcryptjs'
+import * as Crypto from 'expo-crypto'
 import { Link, useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+
+// Add secure random fallback for bcryptjs in React Native
+bcrypt.setRandomFallback((len: number) => {
+  const array = new Uint8Array(len);
+  return Crypto.getRandomValues(array);
+});
 
 export default function Signup() {
   const [userName, setUserName] = useState('')
@@ -35,7 +42,8 @@ export default function Signup() {
       setLoading(true);
 
       // Hash the password before sending to backend
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
       console.log('[Signup] Password hashed successfully');
 
       // 1. Create User

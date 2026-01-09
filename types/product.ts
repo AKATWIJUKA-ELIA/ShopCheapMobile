@@ -124,6 +124,7 @@ export const GET_USER_API_URL = `${API_BASE_URL}/user`;
 export const GET_BOOKMARKS_API_URL = `${API_BASE_URL}/bookmarks`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;
 export const UPLOAD_IMAGES_API_URL = `${API_BASE_URL}/upload-images`;
+export const UPDATE_SHOP_API_URL = `${API_BASE_URL}/update-shop`;
 
 /**
  * Normalize image to string[] format

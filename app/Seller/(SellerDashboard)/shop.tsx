@@ -1,10 +1,13 @@
 import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
-import { GET_SHOP_BY_OWNER_API_URL } from '@/types/product';
+import { GET_SHOP_BY_OWNER_API_URL, GET_SHOPS_API_URL, GET_USER_API_URL, UPDATE_SHOP_API_URL } from '@/types/product';
+import { showToast } from '@/utils/toast';
+import { uploadImages } from '@/utils/upload';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ShopProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
@@ -20,30 +23,77 @@ export default function ShopProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
+  const [originalShopData, setOriginalShopData] = useState<any>(null);
 
   const fetchShop = async () => {
     if (!user) return;
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${GET_SHOP_BY_OWNER_API_URL}?ownerId=${user._id}`);
-      if (!res.ok) throw new Error("Failed to fetch shop profile");
-      const data = await res.json();
-      if (data.success && data.shop) {
-        setShopName(data.shop.shop_name);
-        setTagline(data.shop.slogan);
-        setDescription(data.shop.description);
-        setProfileImage(data.shop.profile_image);
-        setCoverImage(data.shop.cover_image);
-      } else {
-        setError(data.message || "Shop profile not found");
+
+      console.log(`[ShopFetch] Fetching user details for: ${user._id}`);
+      const userRes = await fetch(`${GET_USER_API_URL}?id=${user._id}`);
+      if (!userRes.ok) {
+        throw new Error(`Failed to fetch user details: ${userRes.status}`);
       }
-    } catch (error) {
+      const userData = await userRes.json();
+      console.log(`[ShopFetch] User details found:`, userData);
+
+      // Try fetching shop by owner ID
+      let shopResponse = await fetch(`${GET_SHOP_BY_OWNER_API_URL}?owner_id=${userData._id}`);
+      let shopData = await shopResponse.json();
+
+      // Fallback: search in all shops if direct owner fetch fails
+      if (!shopData.success) {
+        console.log(`[ShopFetch] Direct owner_id fetch failed, searching in all shops...`);
+        const allShopsRes = await fetch(GET_SHOPS_API_URL);
+        if (allShopsRes.ok) {
+          const allShops = await allShopsRes.json();
+          const foundShop = allShops.find((s: any) => s.owner_id === userData._id);
+          if (foundShop) {
+            shopData = { success: true, shop: foundShop };
+          }
+        }
+      }
+
+      if (shopData.success && shopData.shop) {
+        const s = shopData.shop;
+        setShopName(s.shop_name);
+        setTagline(s.slogan);
+        setDescription(s.description);
+        setProfileImage(s.profile_image);
+        setCoverImage(s.cover_image);
+        setOriginalShopData(s);
+        console.log(`[ShopFetch] Shop profile loaded successfully`);
+      } else {
+        setError(shopData.message || "Shop profile not found for your account.");
+      }
+    } catch (error: any) {
       console.error("Error fetching shop profile:", error);
-      setError("Network request failed. Unable to load shop profile.");
+      setError(error.message || "Network request failed. Unable to load shop profile.");
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const pickImage = async (setter: (uri: string) => void, aspect: [number, number] = [1, 1]) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: aspect,
+        quality: 0.2,
+      });
+
+      if (!result.canceled) {
+        setter(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+      console.error(error);
     }
   };
 
@@ -56,13 +106,68 @@ export default function ShopProfileScreen() {
     fetchShop();
   };
 
-  const onSave = () => {
-    // TODO: save changes to backend/API
-    setIsEditing(false);
+  const onSave = async () => {
+    if (!user || !originalShopData) return;
+    try {
+      setSaving(true);
+      setLoadingStatus("Uploading images...");
+
+      let finalProfileImage = profileImage;
+      let finalCoverImage = coverImage;
+
+      // Handle profile image upload if changed
+      if (profileImage && (profileImage.startsWith('file://') || profileImage.startsWith('content://'))) {
+        const ids = await uploadImages([profileImage]);
+        if (ids.length > 0) finalProfileImage = ids[0];
+      }
+
+      // Handle cover image upload if changed
+      if (coverImage && (coverImage.startsWith('file://') || coverImage.startsWith('content://'))) {
+        const ids = await uploadImages([coverImage]);
+        if (ids.length > 0) finalCoverImage = ids[0];
+      }
+
+      setLoadingStatus("Saving changes...");
+
+      const response = await fetch(UPDATE_SHOP_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shopId: originalShopData._id,
+          shop_name: shopName,
+          description: description,
+          slogan: tagline,
+          profile_image: finalProfileImage,
+          cover_image: finalCoverImage,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        showToast("Shop profile updated successfully", "success");
+        setIsEditing(false);
+        fetchShop(); // Refresh data
+      } else {
+        showToast(result.message || "Failed to update shop", "error");
+      }
+    } catch (error) {
+      console.error("Error saving shop profile:", error);
+      showToast("An error occurred while saving", "error");
+    } finally {
+      setSaving(false);
+      setLoadingStatus("");
+    }
   };
 
   const onCancel = () => {
-    // reset or just close edit mode
+    if (originalShopData) {
+      setShopName(originalShopData.shop_name);
+      setTagline(originalShopData.slogan);
+      setDescription(originalShopData.description);
+      setProfileImage(originalShopData.profile_image);
+      setCoverImage(originalShopData.cover_image);
+    }
     setIsEditing(false);
   };
 
@@ -197,7 +302,7 @@ export default function ShopProfileScreen() {
                     <Text style={{ fontWeight: '500' }}>200x200px</Text>
                   </Text>
                   {isEditing && (
-                    <TouchableOpacity style={styles.uploadButton}>
+                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage(setProfileImage)}>
                       <MaterialIcons name="upload-file" size={14} color={colors.primary} />
                       <Text style={styles.uploadButtonText}>Change Logo</Text>
                     </TouchableOpacity>
@@ -218,7 +323,7 @@ export default function ShopProfileScreen() {
                 </View>
               )}
               {isEditing && (
-                <TouchableOpacity style={styles.uploadButton}>
+                <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage(setCoverImage, [3, 1])}>
                   <MaterialIcons name="upload-file" size={14} color={colors.primary} />
                   <Text style={styles.uploadButtonText}>Change Banner</Text>
                 </TouchableOpacity>
@@ -236,9 +341,13 @@ export default function ShopProfileScreen() {
               <Text style={styles.saveButtonText}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.saveButton} onPress={onSave}>
-              <MaterialIcons name="save" size={16} color={colors.light} />
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={onSave} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator size="small" color={colors.light} />
+              ) : (
+                <MaterialIcons name="save" size={16} color={colors.light} />
+              )}
+              <Text style={styles.saveButtonText}>{saving ? loadingStatus : "Save Changes"}</Text>
             </TouchableOpacity>
           </View>
         )}

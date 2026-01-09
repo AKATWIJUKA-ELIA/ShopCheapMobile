@@ -89,7 +89,7 @@ const Account = () => {
           <UserAvatar name={user?.username || 'Guest'} size={76} />
         </View>
         <View style={{ marginLeft: 12 }}>
-          <Text style={styles.name}>{isAuthenticated ? `Hello, ${user?.username}!` : 'Hello, Guest!'}</Text>
+          <Text style={styles.name}>{isAuthenticated ? `${user?.username}` : 'Guest'}</Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {!isAuthenticated ? (
               <Link href='/(auth)/login' asChild>

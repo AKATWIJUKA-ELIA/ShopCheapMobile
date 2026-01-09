@@ -723,7 +723,7 @@ Get a shop by its name.
 
 ---
 
-#### GET `/shop/owner?ownerId={ownerId}`
+#### GET `/shop/owner?owner_id={owner_id}`
 Get a shop by owner ID.
 
 **Query Parameters:**

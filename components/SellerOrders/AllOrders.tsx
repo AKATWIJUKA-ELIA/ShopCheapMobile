@@ -1,8 +1,9 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { formatPrice, GET_ORDERS_BY_SELLER_API_URL } from "@/types/product";
+import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import OrderDetailsBottomSheet, { OrderDetails, OrderDetailsBottomSheetRef } from "../OrderDetailsBottomSheetView";
 
 
@@ -86,6 +87,7 @@ export default function AllOrders() {
   const [orders, setOrders] = useState<OrderDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -123,6 +125,11 @@ export default function AllOrders() {
     fetchOrders();
   }, [user]);
 
+  const filteredOrders = orders.filter(o =>
+    o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    o.customer.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading && !refreshing) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
@@ -133,8 +140,20 @@ export default function AllOrders() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <MaterialIcons name="search" size={18} color={colors.grayish} />
+          <TextInput
+            placeholder="Search orders (ID, Customer)..."
+            placeholderTextColor={colors.grayish}
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
         refreshControl={
@@ -184,6 +203,29 @@ const getStatusColor = (status: string, colors: any) => {
 
 const appStyles = (colors: any) =>
   StyleSheet.create({
+    searchRow: {
+      flexDirection: "row",
+      padding: 16,
+      paddingBottom: 8,
+      backgroundColor: colors.background
+    },
+    searchBox: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.background,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      borderColor: colors.lightgray,
+      borderWidth: 1
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 14,
+      marginLeft: 6,
+      color: colors.text,
+      height: 40
+    },
     card: {
       backgroundColor: colors.card,
       borderRadius: 12,

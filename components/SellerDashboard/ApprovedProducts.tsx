@@ -4,7 +4,7 @@ import { formatPrice, GET_PRODUCTS_BY_SELLER_API_URL, Product } from '@/types/pr
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ErrorView from '../ui/ErrorView';
 
 
@@ -18,6 +18,7 @@ export default function ApprovedProductsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchProducts = async () => {
     if (!user) return;
@@ -48,9 +49,27 @@ export default function ApprovedProductsScreen() {
     fetchProducts();
   };
 
+  const filteredProducts = products.filter(p =>
+    p.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.product_category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* CONTENT */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <MaterialIcons name="search" size={18} color={colors.grayish} />
+          <TextInput
+            placeholder="Search approved products..."
+            placeholderTextColor={colors.grayish}
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : error ? (
@@ -58,7 +77,7 @@ export default function ApprovedProductsScreen() {
       ) : (
         <FlatList
           contentContainerStyle={styles.content}
-          data={products}
+          data={filteredProducts}
           keyExtractor={(item) => item._id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
           ListEmptyComponent={
@@ -112,8 +131,32 @@ const appStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: 120,
+    backgroundColor: colors.background
+  },
+  searchRow: {
+    flexDirection: "row",
+    padding: 16,
+    paddingBottom: 8,
+    backgroundColor: colors.background
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderColor: colors.lightgray,
+    borderWidth: 1
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 6,
+    color: colors.text,
+    height: 40
   },
   title: {
     fontSize: 22,
