@@ -1,4 +1,4 @@
-import { CREATE_CART_API_URL, DELETE_CART_API_URL, GET_CART_API_URL, INCREASE_CART_API_URL, Product, REDUCE_CART_API_URL } from '@/types/product';
+import { ADD_BOOKMARK_API_URL, CREATE_CART_API_URL, DELETE_CART_API_URL, GET_CART_API_URL, INCREASE_CART_API_URL, Product, REDUCE_CART_API_URL } from '@/types/product';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -166,29 +166,51 @@ export const useCartStore = create<CartState>()(
 
                 if (user) {
                     try {
-                        // We don't have a specific TOGGLE_BOOKMARK_API_URL, 
-                        // so we try a generic approach or /bookmarks POST
-                        const { API_BASE_URL } = await import('@/types/product');
-                        const res = await fetch(`${API_BASE_URL}/bookmarks/toggle`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user._id, productId: product._id })
-                        });
-
-                        if (!res.ok) {
-                            // If toggle fails, try /bookmarks POST as fallback
-                            await fetch(`${API_BASE_URL}/bookmarks`, {
+                        if (!isBookmarked) {
+                            // Use the new /bookmarks/add API
+                            const res = await fetch(ADD_BOOKMARK_API_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId: user._id, productId: product._id })
+                                body: JSON.stringify({
+                                    product_id: product._id,
+                                    user_id: user._id,
+                                    productId: product._id,
+                                    userId: user._id,
+                                }),
                             });
+
+                            if (!res.ok) {
+                                const errorText = await res.text();
+                                console.log(`[BookmarkSync] Add FAILED (${res.status}): ${errorText}`);
+                                if (errorText.includes("already bookmarked")) {
+                                    console.log("[BookmarkSync] Item already bookmarked on server, keeping local state.");
+                                } else {
+                                    // REVERT on other errors
+                                    console.log("[BookmarkSync] Reverting local state due to server error.");
+                                    const { wishlistIds: prevIds, wishlistItems: prevItems } = get();
+                                    set({
+                                        wishlistIds: prevIds.filter(id => id !== product._id),
+                                        wishlistItems: prevItems.filter(p => p._id !== product._id)
+                                    });
+                                }
+                            }
+                        } else {
+                            // Removing bookmark
+                            const { API_BASE_URL } = await import('@/types/product');
+                            const res = await fetch(`${API_BASE_URL}/bookmarks/toggle`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user._id, productId: product._id, user_id: user._id, product_id: product._id })
+                            });
+                            if (!res.ok) {
+                                console.log(`[BookmarkSync] Toggle/Remove failed: ${res.status}`);
+                            }
                         }
                         // Always refetch to stay in sync
+                        console.log("[BookmarkSync] Triggering fetchBookmarks after toggle.");
                         await get().fetchBookmarks();
                     } catch (error) {
-                        console.error("Error toggling bookmark on backend:", error);
-                        // Revert local state on real error? 
-                        // For now we trust optimistic but log error.
+                        console.error("[BookmarkSync] Error toggling bookmark on backend:", error);
                     }
                 }
             },
@@ -213,6 +235,7 @@ export const useCartStore = create<CartState>()(
                     }
 
                     const data = await res.json();
+                    console.log(`[BookmarkSync] Raw data from /bookmarks:`, JSON.stringify(data, null, 2));
                     let bookmarks: Product[] = [];
 
                     if (Array.isArray(data)) {
@@ -225,11 +248,25 @@ export const useCartStore = create<CartState>()(
 
                     // Handle case where products might be wrapped: { product: { ... } }
                     const sanitizedBookmarks = bookmarks.map((item: any) => {
-                        if (item.product && typeof item.product === 'object' && item.product._id) {
-                            return item.product;
+                        let p = { ...item }; // Start with a copy
+                        if (item.product && typeof item.product === 'object') {
+                            p = { ...item.product };
                         }
-                        return item;
+
+                        // Ensure we have the standard field names
+                        // Prioritize product_id/productId if they exist as they are more likely to be the actual product IDs
+                        const actualId = p.product_id || p.productId || p._id || p.id;
+                        p._id = actualId;
+
+                        if (!p.product_name) p.product_name = p.name || p.title || p.productName;
+                        if (!p.product_price) p.product_price = p.price || p.productPrice;
+                        if (!p.product_image) p.product_image = p.image || p.images || p.productImage || p.product_images;
+                        if (!p.product_category) p.product_category = p.category || p.product_cartegory || p.cartegory;
+
+                        return p;
                     }).filter((p: any) => p && p._id);
+
+                    console.log(`[BookmarkSync] Sanitized IDs:`, sanitizedBookmarks.map(p => p._id));
 
                     // Compare IDs to see if they changed
                     const currentIds = get().wishlistIds;
@@ -240,7 +277,7 @@ export const useCartStore = create<CartState>()(
                             wishlistItems: sanitizedBookmarks,
                             wishlistIds: newIds
                         });
-                        console.log(`[BookmarkSync] Updated state with ${sanitizedBookmarks.length} items`);
+                        console.log(`[BookmarkSync] Updated state with ${sanitizedBookmarks.length} items. First item:`, JSON.stringify(sanitizedBookmarks[0], null, 2));
                     } else {
                         console.log(`[BookmarkSync] No changes detected in bookmarks`);
                     }

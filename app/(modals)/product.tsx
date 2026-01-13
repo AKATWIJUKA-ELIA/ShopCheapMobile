@@ -397,7 +397,11 @@ export default function ProductModal() {
                 }
               }}>
                 <FontAwesome
-                  name={wishlistIds.includes(product._id) ? 'bookmark' : 'bookmark-o'}
+                  name={(() => {
+                    const isBookmarked = wishlistIds.includes(product._id);
+                    console.log(`[ProductDetail] Bookmark Check: ID=${product._id}, IsInWishlist=${isBookmarked}, WishlistCount=${wishlistIds.length}`);
+                    return isBookmarked ? 'bookmark' : 'bookmark-o';
+                  })()}
                   size={24}
                   color={colors.primary}
                 />

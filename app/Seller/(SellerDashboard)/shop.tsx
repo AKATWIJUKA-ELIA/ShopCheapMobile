@@ -1,7 +1,7 @@
 import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
-import { GET_SHOP_BY_OWNER_API_URL, GET_SHOPS_API_URL, GET_USER_API_URL, UPDATE_SHOP_API_URL } from '@/types/product';
+import { GET_SHOPS_API_URL, UPDATE_SHOP_API_URL } from '@/types/product';
 import { showToast } from '@/utils/toast';
 import { uploadImages } from '@/utils/upload';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -33,42 +33,24 @@ export default function ShopProfileScreen() {
       setLoading(true);
       setError(null);
 
-      console.log(`[ShopFetch] Fetching user details for: ${user._id}`);
-      const userRes = await fetch(`${GET_USER_API_URL}?id=${user._id}`);
-      if (!userRes.ok) {
-        throw new Error(`Failed to fetch user details: ${userRes.status}`);
-      }
-      const userData = await userRes.json();
-      console.log(`[ShopFetch] User details found:`, userData);
+      console.log(`[ShopFetch] Fetching all shops to find match for owner: ${user._id}`);
 
-      // Try fetching shop by owner ID
-      let shopResponse = await fetch(`${GET_SHOP_BY_OWNER_API_URL}?owner_id=${userData._id}`);
-      let shopData = await shopResponse.json();
+      const res = await fetch(GET_SHOPS_API_URL);
+      if (!res.ok) throw new Error("Failed to fetch shops list");
 
-      // Fallback: search in all shops if direct owner fetch fails
-      if (!shopData.success) {
-        console.log(`[ShopFetch] Direct owner_id fetch failed, searching in all shops...`);
-        const allShopsRes = await fetch(GET_SHOPS_API_URL);
-        if (allShopsRes.ok) {
-          const allShops = await allShopsRes.json();
-          const foundShop = allShops.find((s: any) => s.owner_id === userData._id);
-          if (foundShop) {
-            shopData = { success: true, shop: foundShop };
-          }
-        }
-      }
+      const allShops = await res.json();
+      const shopData = allShops.find((s: any) => s.owner_id === user._id);
 
-      if (shopData.success && shopData.shop) {
-        const s = shopData.shop;
-        setShopName(s.shop_name);
-        setTagline(s.slogan);
-        setDescription(s.description);
-        setProfileImage(s.profile_image);
-        setCoverImage(s.cover_image);
-        setOriginalShopData(s);
-        console.log(`[ShopFetch] Shop profile loaded successfully`);
+      if (shopData) {
+        setShopName(shopData.shop_name);
+        setTagline(shopData.slogan);
+        setDescription(shopData.description);
+        setProfileImage(shopData.profile_image);
+        setCoverImage(shopData.cover_image);
+        setOriginalShopData(shopData);
+        console.log(`[ShopFetch] Shop profile found and loaded`);
       } else {
-        setError(shopData.message || "Shop profile not found for your account.");
+        setError("Shop profile not found for your account. Please ensure you are registered as a seller.");
       }
     } catch (error: any) {
       console.error("Error fetching shop profile:", error);

@@ -5,9 +5,11 @@ import { showToast } from "@/utils/toast";
 import { uploadImages } from "@/utils/upload";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 
 export default function SellerRegistrationScreen() {
   const [shopName, setShopName] = useState("");
@@ -15,6 +17,14 @@ export default function SellerRegistrationScreen() {
   const [shopDescription, setShopDescription] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isMapModalVisible, setIsMapModalVisible] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 0.3476,
+    longitude: 32.5825,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   const { colors, theme } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
@@ -31,7 +41,7 @@ export default function SellerRegistrationScreen() {
     (shopDescription.length >= 50 ? 1 : 0) +
     (profileImage ? 1 : 0) +
     (coverImage ? 1 : 0) +
-    1; // location (defaulted for now)
+    (location ? 1 : 0);
   const progress = (filledFields / totalFields) * 100;
 
   const pickImage = async (setter: (uri: string | null) => void, aspect: [number, number] = [1, 1]) => {
@@ -53,6 +63,33 @@ export default function SellerRegistrationScreen() {
     }
   };
 
+  const handleGetCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return Alert.alert("Permission Denied", "Permission to access location was denied");
+      }
+
+      const loc = await Location.getCurrentPositionAsync({});
+      const newRegion = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setMapRegion(newRegion);
+      setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    } catch (error) {
+      Alert.alert("Error", "Failed to get current location");
+      console.error(error);
+    }
+  };
+
+  const handleMapPress = (e: any) => {
+    const coords = e.nativeEvent.coordinate;
+    setLocation({ lat: coords.latitude, lng: coords.longitude });
+  };
+
   const handleSubmit = async () => {
     if (!user) return showToast("Please log in to apply.", "error");
     if (!shopName) return showToast("Shop Name is required!", "error");
@@ -61,6 +98,7 @@ export default function SellerRegistrationScreen() {
         "Shop Description must be at least 50 characters!",
         "error"
       );
+    if (!location) return showToast("Please select your shop location!", "error");
 
     try {
       setLoading(true);
@@ -94,8 +132,8 @@ export default function SellerRegistrationScreen() {
           slogan: shopSlogan,
           cover_image: finalCoverImage || 'https://via.placeholder.com/1200x400',
           location: {
-            lat: 0.3476, // TODO: Get actual location
-            lng: 32.5825
+            lat: location.lat,
+            lng: location.lng
           }
         }),
       });
@@ -193,6 +231,95 @@ export default function SellerRegistrationScreen() {
         </View>
       </View>
 
+      {/* Shop Location */}
+      <View style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="location-on" size={20} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Shop Location <Text style={{ color: colors.primary }}>*</Text></Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.locationContainer}
+          onPress={() => setIsMapModalVisible(true)}
+        >
+          {location ? (
+            <View>
+              <Text style={{ color: colors.text, fontSize: 14 }}>
+                Latitude: {location.lat.toFixed(6)}
+              </Text>
+              <Text style={{ color: colors.text, fontSize: 14 }}>
+                Longitude: {location.lng.toFixed(6)}
+              </Text>
+              <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4 }}>
+                Tap to change location
+              </Text>
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center' }}>
+              <MaterialIcons name="map" size={30} color={colors.grayish} />
+              <Text style={{ color: colors.primary, fontSize: 12 }}>Select Shop Location on Map</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <Modal
+        visible={isMapModalVisible}
+        animationType="slide"
+        transparent={false}
+      >
+        <View style={{ flex: 1 }}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setIsMapModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Location</Text>
+            <TouchableOpacity onPress={() => setIsMapModalVisible(false)}>
+              <Text style={{ color: colors.primary, fontWeight: 'bold' }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{
+            height: Dimensions.get('window').height - 150,
+            width: '100%',
+            backgroundColor: '#f0f0f0',
+            overflow: 'hidden'
+          }}>
+            <MapView
+              style={StyleSheet.absoluteFillObject}
+              initialRegion={mapRegion}
+              onPress={handleMapPress}
+              showsUserLocation={true}
+              showsMyLocationButton={true}
+            >
+              {location && (
+                <Marker
+                  coordinate={{
+                    latitude: location.lat,
+                    longitude: location.lng
+                  }}
+                  draggable
+                  onDragEnd={(e) => setLocation({ lat: e.nativeEvent.coordinate.latitude, lng: e.nativeEvent.coordinate.longitude })}
+                />
+              )}
+            </MapView>
+          </View>
+
+          <View style={styles.mapControls}>
+            <TouchableOpacity
+              style={styles.currentLocBtn}
+              onPress={handleGetCurrentLocation}
+            >
+              <MaterialIcons name="my-location" size={24} color="white" />
+              <Text style={{ color: 'white', marginLeft: 8 }}>Use Current Location</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 10, color: colors.grayish, textAlign: 'center', marginTop: 8 }}>
+              Tap on the map to place a marker or drag the marker to adjust
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
       {/* Shop Images */}
       <View style={styles.card}>
         <View style={styles.sectionHeader}>
@@ -236,9 +363,9 @@ export default function SellerRegistrationScreen() {
         <TouchableOpacity
           style={[
             styles.submitBtn,
-            { backgroundColor: (shopName && shopDescription.length >= 50) ? colors.primary : colors.grayish },
+            { backgroundColor: (shopName && shopDescription.length >= 50 && location) ? colors.primary : colors.grayish },
           ]}
-          disabled={!shopName || shopDescription.length < 50 || loading}
+          disabled={!shopName || shopDescription.length < 50 || !location || loading}
           onPress={handleSubmit}
         >
           {loading ? (
@@ -424,4 +551,47 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontSize: 10,
     color: colors.grayish
   },
+  locationContainer: {
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: "#D1D5DB",
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    minHeight: 80
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingTop: 50,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.grayish
+  },
+  mapControls: {
+    position: 'absolute',
+    bottom: 40,
+    left: 16,
+    right: 16,
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  currentLocBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 10
+  }
 });
