@@ -1,7 +1,7 @@
 import ErrorView from "@/components/ui/ErrorView";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
-import { GET_ORDERS_BY_SELLER_API_URL, GET_PRODUCTS_BY_SELLER_API_URL } from "@/types/product";
+import { GET_ORDERS_BY_SELLER_API_URL, GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_API_URL } from "@/types/product";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -30,6 +30,7 @@ export default function SellerDashboard() {
   const { user } = useAuthStore();
 
   const [productsCount, setProductsCount] = useState(0);
+  const [shopName, setShopName] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,16 @@ export default function SellerDashboard() {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch Shop
+      const shopsRes = await fetch(GET_SHOPS_API_URL);
+      if (shopsRes.ok) {
+        const allShops = await shopsRes.json();
+        const shopData = allShops.find((s: any) => s.owner_id === user._id || s.user_id === user._id);
+        if (shopData && shopData.shop_name) {
+          setShopName(shopData.shop_name);
+        }
+      }
 
       // Fetch Products
       const prodRes = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${user._id}`);
@@ -106,7 +117,7 @@ export default function SellerDashboard() {
           </View>
           <View>
             <Text style={styles.greetingText}>
-              Hello <Text style={styles.username}>{user?.username || 'Seller'}</Text>,
+              <Text style={styles.username}>{shopName || user?.username || 'Seller'}</Text>
             </Text>
             <Text style={styles.subText}>Welcome to your dashboard</Text>
           </View>
