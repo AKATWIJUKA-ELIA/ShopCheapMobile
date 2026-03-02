@@ -1,10 +1,18 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { useCartStore } from '@/store/useCartStore';
-import { formatPrice, Product } from '@/types/product';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from "@/contexts/ThemeContext";
+import { useCartStore } from "@/store/useCartStore";
+import { formatPrice, Product } from "@/types/product";
+import { Feather, FontAwesome, Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function BookmarksPage() {
   const { colors } = useTheme();
@@ -29,27 +37,44 @@ export default function BookmarksPage() {
   };
 
   const renderProduct = ({ item }: { item: Product }) => {
-    const images = Array.isArray(item.product_image) ? item.product_image : [item.product_image];
+    const images = Array.isArray(item.product_image)
+      ? item.product_image
+      : [item.product_image];
 
     return (
       <TouchableOpacity
         style={styles.productCard}
         activeOpacity={0.9}
-        onPress={() => router.push({ pathname: '/(modals)/product', params: { id: item._id } })}
+        onPress={() =>
+          router.push({
+            pathname: "/(modals)/product",
+            params: { id: item._id },
+          })
+        }
       >
         <Image
-          source={images[0] ? { uri: images[0] } : require('@/assets/images/placeholder.png')}
+          source={
+            images[0]
+              ? { uri: images[0] }
+              : require("@/assets/images/placeholder.webp")
+          }
           style={styles.productImage}
         />
 
         <View style={styles.productDetails}>
           <View>
-            <Text style={styles.categoryText}>{item.product_category || item.product_cartegory || 'Product'}</Text>
-            <Text style={styles.productName} numberOfLines={1}>{item.product_name}</Text>
+            <Text style={styles.categoryText}>
+              {item.product_category || item.product_cartegory || "Product"}
+            </Text>
+            <Text style={styles.productName} numberOfLines={1}>
+              {item.product_name}
+            </Text>
           </View>
 
           <View style={styles.priceRow}>
-            <Text style={styles.priceText}>{formatPrice(item.product_price)}</Text>
+            <Text style={styles.priceText}>
+              {formatPrice(item.product_price)}
+            </Text>
             <TouchableOpacity
               style={styles.heartBtn}
               onPress={async () => {
@@ -58,7 +83,7 @@ export default function BookmarksPage() {
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="heart" size={20} color="#ef4444" />
+              <FontAwesome name="bookmark" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -70,7 +95,10 @@ export default function BookmarksPage() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Wishlist</Text>
@@ -88,10 +116,12 @@ export default function BookmarksPage() {
             <Feather name="heart" size={48} color={colors.grayish} />
           </View>
           <Text style={styles.emptyTitle}>Wishlist is empty</Text>
-          <Text style={styles.emptySubtitle}>Save items you love to find them later!</Text>
+          <Text style={styles.emptySubtitle}>
+            Save items you love to find them later!
+          </Text>
           <TouchableOpacity
             style={styles.exploreBtn}
-            onPress={() => router.push('/(tabs)/home')}
+            onPress={() => router.push("/(tabs)/home")}
           >
             <Text style={styles.exploreBtnText}>Start Shopping</Text>
           </TouchableOpacity>
@@ -118,31 +148,31 @@ const appStyles = (colors: any) =>
       backgroundColor: colors.background,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       padding: 16,
-      justifyContent: 'space-between',
+      justifyContent: "space-between",
     },
     backButton: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     headerTitle: {
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.primary,
       letterSpacing: 0.5,
     },
     center: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     productCard: {
-      flexDirection: 'row',
+      flexDirection: "row",
       backgroundColor: colors.card,
       borderRadius: 20,
       padding: 12,
@@ -158,49 +188,49 @@ const appStyles = (colors: any) =>
       width: 100,
       height: 100,
       borderRadius: 16,
-      backgroundColor: colors.primary + '10',
+      backgroundColor: colors.primary + "10",
     },
     productDetails: {
       flex: 1,
       marginLeft: 16,
-      justifyContent: 'space-between',
+      justifyContent: "space-between",
       paddingVertical: 4,
     },
     categoryText: {
       fontSize: 11,
       color: colors.primary,
-      fontWeight: '700',
-      textTransform: 'uppercase',
+      fontWeight: "700",
+      textTransform: "uppercase",
       letterSpacing: 0.8,
       marginBottom: 2,
     },
     productName: {
       color: colors.text,
       fontSize: 16,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     priceRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
     },
     priceText: {
       color: colors.primary,
       fontSize: 16,
-      fontWeight: '800',
+      fontWeight: "800",
     },
     heartBtn: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: '#fee2e2',
-      justifyContent: 'center',
-      alignItems: 'center',
+      // backgroundColor: '#fee2e2',
+      justifyContent: "center",
+      alignItems: "center",
     },
     emptyState: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: 40,
     },
     emptyIconBox: {
@@ -208,20 +238,20 @@ const appStyles = (colors: any) =>
       height: 100,
       borderRadius: 50,
       backgroundColor: colors.card,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       marginBottom: 20,
     },
     emptyTitle: {
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.text,
       marginBottom: 8,
     },
     emptySubtitle: {
       fontSize: 14,
       color: colors.grayish,
-      textAlign: 'center',
+      textAlign: "center",
       marginBottom: 30,
     },
     exploreBtn: {
@@ -232,7 +262,7 @@ const appStyles = (colors: any) =>
     },
     exploreBtnText: {
       color: colors.background,
-      fontWeight: '800',
+      fontWeight: "800",
       fontSize: 15,
     },
   });

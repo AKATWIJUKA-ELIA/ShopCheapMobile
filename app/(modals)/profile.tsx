@@ -108,9 +108,9 @@ export default function UserProfile() {
           <Text style={styles.userName}>{displayUser.name}</Text>
           <Text style={styles.userEmail}>{displayUser.email}</Text>
 
-          <View style={styles.roleBadge}>
+          {/* <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'USER'}</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* Info Items */}

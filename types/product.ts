@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+
 // API Product interface matching the backend
 export interface Product {
     _id: string;
@@ -98,7 +100,7 @@ export function formatPrice(price: string | number): string {
 }
 
 // API endpoint
-export const API_BASE_URL = 'https://cheery-cod-687.convex.site';
+export const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://cheery-cod-687.convex.site';
 export const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
 export const CATEGORIES_API_URL = `${API_BASE_URL}/categories`;
 export const AUTH_API_URL = `${API_BASE_URL}/auth`;
@@ -126,6 +128,8 @@ export const ADD_BOOKMARK_API_URL = `${API_BASE_URL}/bookmarks/add`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;
 export const UPLOAD_IMAGES_API_URL = `${API_BASE_URL}/upload-images`;
 export const UPDATE_SHOP_API_URL = `${API_BASE_URL}/update-shop`;
+export const GET_RECOMMENDATIONS_API_URL = `${API_BASE_URL}/recommendations`;
+export const CHECKOUT_API_URL = `${API_BASE_URL}/checkout`;
 
 /**
  * Normalize image to string[] format

@@ -64,14 +64,19 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <View style={{ left: 0, width: 40, top: 0 }}>
-        <TouchableOpacity onPress={() => router.navigate('/(tabs)/account')} style={{
-          backgroundColor: colors.background,
-          borderRadius: 99,
-          padding: 5,
-          height: 40,
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <TouchableOpacity onPress={() => 
+            // router.navigate('/(tabs)/account')
+            router.back()
+          } 
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: 99,
+              padding: 5,
+              height: 40,
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+        >
           <Ionicons name='arrow-back' size={30} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -129,7 +134,7 @@ export default function Login() {
         <Text style={[styles.or]}>Forgot password?</Text>
       </TouchableOpacity>
 
-      <Text style={styles.or}>or continue with</Text>
+      {/* <Text style={styles.or}>or continue with</Text>
 
       <View style={styles.row}>
         <TouchableOpacity style={styles.oauthBtn} activeOpacity={0.7}>
@@ -140,7 +145,7 @@ export default function Login() {
           <AntDesign name='apple1' size={20} color={colors.background} />
           <Text style={styles.oauthText}>Apple</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <View style={styles.inline}>
         <Text style={{ color: colors.grayish }}>Don't have an account?</Text>

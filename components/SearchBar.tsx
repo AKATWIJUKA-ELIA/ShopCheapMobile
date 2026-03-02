@@ -8,9 +8,19 @@ type Props = {
   placeholder?: string
   value?: string
   onChangeText?: (text: string) => void
+  onSubmitEditing?: () => void
+  onFocus?: () => void
+  onBlur?: () => void
 }
 
-export default function SearchBar({ placeholder = 'Search on Shop Cheap', value, onChangeText }: Props) {
+export default function SearchBar({
+  placeholder = 'Search on Shop Cheap',
+  value,
+  onChangeText,
+  onSubmitEditing,
+  onFocus,
+  onBlur
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
@@ -24,6 +34,11 @@ export default function SearchBar({ placeholder = 'Search on Shop Cheap', value,
         cursorColor={colors.primary}
         value={value}
         onChangeText={onChangeText}
+        onSubmitEditing={onSubmitEditing}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        returnKeyType="search"
+        autoFocus
       />
       {value ? (
         <MaterialIcons name="cancel" size={18} color={Colors.grayish} onPress={() => onChangeText?.('')} />

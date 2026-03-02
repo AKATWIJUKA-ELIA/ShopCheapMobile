@@ -7,15 +7,24 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "API_BASE_URL": "https://cheery-cod-687.convex.site"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "API_BASE_URL": "https://cheery-cod-687.convex.site"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "API_BASE_URL": "https://resilient-mastiff-366.convex.site"
+      }
     }
   },
   "submit": {

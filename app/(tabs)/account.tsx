@@ -23,7 +23,13 @@ const Account = () => {
   const router = useRouter();
 
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { clearCart } = useCartStore();
+  const { clearCart, wishlistIds, fetchBookmarks } = useCartStore();
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      fetchBookmarks();
+    }
+  }, [isAuthenticated]);
 
   // Bottom sheet state
   const translateY = useState(new Animated.Value(height))[0];
@@ -105,7 +111,7 @@ const Account = () => {
               </TouchableOpacity>
             )}
 
-            {isAuthenticated && user?.role === 'seller' ? (
+            {/* {isAuthenticated && user?.role === 'seller' ? (
               <Link href='/Seller/(SellerDashboard)' asChild>
                 <TouchableOpacity style={styles.SignInBtn}>
                   <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5, padding: 4 }}>Seller Dashboard</Text>
@@ -117,7 +123,7 @@ const Account = () => {
                   <Text style={{ color: colors.light, fontWeight: 'bold', fontSize: 12, marginLeft: 5, marginRight: 5, padding: 4 }}>Become a Seller</Text>
                 </TouchableOpacity>
               </Link>
-            )}
+            )} */}
           </View>
         </View>
       </View>
@@ -147,16 +153,30 @@ const Account = () => {
                 <Feather name='bookmark' size={20} color={colors.text} />
                 <Text style={styles.itemLabel}>Bookmarks</Text>
               </View>
-              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {wishlistIds.length > 0 && (
+                  <View style={{
+                    backgroundColor: colors.primary + '20',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 12,
+                    minWidth: 24,
+                    alignItems: 'center'
+                  }}>
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{wishlistIds.length}</Text>
+                  </View>
+                )}
+                <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+              </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/transactions')}>
+            {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/transactions')}>
               <View style={styles.itemLeft}>
                 <Feather name='credit-card' size={20} color={colors.text} />
                 <Text style={styles.itemLabel}>Transactions</Text>
               </View>
               <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       )}

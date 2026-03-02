@@ -151,13 +151,18 @@ export const useCartStore = create<CartState>()(
                 const user = useAuthStore.getState().user;
                 const isBookmarked = wishlistIds.includes(product._id);
 
+                console.log(`[BookmarkSync] toggleWishlist called. Product ID: ${product._id}, isBookmarked: ${isBookmarked}, user: ${user?._id}`);
+                console.log(`[BookmarkSync] Current wishlistIds:`, wishlistIds);
+
                 // Optimistic update locally
                 if (isBookmarked) {
+                    console.log(`[BookmarkSync] Removing from local state...`);
                     set({
                         wishlistIds: wishlistIds.filter((id) => id !== product._id),
                         wishlistItems: get().wishlistItems.filter((p) => p._id !== product._id)
                     });
                 } else {
+                    console.log(`[BookmarkSync] Adding to local state...`);
                     set({
                         wishlistIds: [...wishlistIds, product._id],
                         wishlistItems: [...get().wishlistItems, product]
@@ -167,7 +172,8 @@ export const useCartStore = create<CartState>()(
                 if (user) {
                     try {
                         if (!isBookmarked) {
-                            // Use the new /bookmarks/add API
+                            // Adding bookmark
+                            console.log(`[BookmarkSync] Calling ADD API...`);
                             const res = await fetch(ADD_BOOKMARK_API_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -187,23 +193,44 @@ export const useCartStore = create<CartState>()(
                                 } else {
                                     // REVERT on other errors
                                     console.log("[BookmarkSync] Reverting local state due to server error.");
-                                    const { wishlistIds: prevIds, wishlistItems: prevItems } = get();
                                     set({
-                                        wishlistIds: prevIds.filter(id => id !== product._id),
-                                        wishlistItems: prevItems.filter(p => p._id !== product._id)
+                                        wishlistIds: get().wishlistIds.filter(id => id !== product._id),
+                                        wishlistItems: get().wishlistItems.filter(p => p._id !== product._id)
                                     });
                                 }
+                            } else {
+                                console.log(`[BookmarkSync] Add SUCCESS`);
                             }
                         } else {
                             // Removing bookmark
+                            console.log(`[BookmarkSync] Calling DELETE API with product_id: ${product._id}, user_id: ${user._id}`);
                             const { API_BASE_URL } = await import('@/types/product');
-                            const res = await fetch(`${API_BASE_URL}/bookmarks/toggle`, {
-                                method: 'POST',
+                            const deleteUrl = `${API_BASE_URL}/bookmarks/delete`;
+                            console.log(`[BookmarkSync] DELETE URL: ${deleteUrl}`);
+
+                            const res = await fetch(deleteUrl, {
+                                method: 'DELETE',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId: user._id, productId: product._id, user_id: user._id, product_id: product._id })
+                                body: JSON.stringify({
+                                    product_id: product._id,
+                                    user_id: user._id
+                                })
                             });
+
+                            const responseText = await res.text();
+                            console.log(`[BookmarkSync] Delete response (${res.status}): ${responseText}`);
+
                             if (!res.ok) {
-                                console.log(`[BookmarkSync] Toggle/Remove failed: ${res.status}`);
+                                console.log(`[BookmarkSync] Delete failed (${res.status})`);
+                                // Revert optimistic removal if it failed
+                                if (res.status !== 404) { // Don't revert if it just wasn't found
+                                    set({
+                                        wishlistIds: [...get().wishlistIds, product._id],
+                                        wishlistItems: [...get().wishlistItems, product]
+                                    });
+                                }
+                            } else {
+                                console.log(`[BookmarkSync] Delete SUCCESS`);
                             }
                         }
                         // Always refetch to stay in sync
@@ -223,7 +250,7 @@ export const useCartStore = create<CartState>()(
                 const user = useAuthStore.getState().user;
                 if (!user) return;
 
-                const { GET_BOOKMARKS_API_URL } = await import('@/types/product');
+                const { GET_BOOKMARKS_API_URL, GET_PRODUCT_API_URL } = await import('@/types/product');
                 try {
                     console.log(`[BookmarkSync] Fetching for user: ${user._id}`);
                     const res = await fetch(`${GET_BOOKMARKS_API_URL}?userId=${user._id}`);
@@ -235,49 +262,80 @@ export const useCartStore = create<CartState>()(
                     }
 
                     const data = await res.json();
-                    console.log(`[BookmarkSync] Raw data from /bookmarks:`, JSON.stringify(data, null, 2));
-                    let bookmarks: Product[] = [];
+                    let bookmarksRaw: any[] = [];
 
                     if (Array.isArray(data)) {
-                        bookmarks = data;
+                        bookmarksRaw = data;
                     } else if (data && Array.isArray(data.bookmarks)) {
-                        bookmarks = data.bookmarks;
+                        bookmarksRaw = data.bookmarks;
                     } else if (data && Array.isArray(data.data)) {
-                        bookmarks = data.data;
+                        bookmarksRaw = data.data;
                     }
 
-                    // Handle case where products might be wrapped: { product: { ... } }
-                    const sanitizedBookmarks = bookmarks.map((item: any) => {
-                        let p = { ...item }; // Start with a copy
-                        if (item.product && typeof item.product === 'object') {
-                            p = { ...item.product };
-                        }
+                    console.log(`[BookmarkSync] Raw bookmarks count: ${bookmarksRaw.length}`);
 
-                        // Ensure we have the standard field names
-                        // Prioritize product_id/productId if they exist as they are more likely to be the actual product IDs
-                        const actualId = p.product_id || p.productId || p._id || p.id;
+                    // 1. Sanitize and extract IDs
+                    const bookmarksWithPartialData = bookmarksRaw.map((item: any) => {
+                        let p = { ...(item.product && typeof item.product === 'object' ? item.product : item) };
+                        const actualId = p.product_id || p.productId || p._id || p.id || item.product_id || item.productId;
                         p._id = actualId;
-
-                        if (!p.product_name) p.product_name = p.name || p.title || p.productName;
-                        if (!p.product_price) p.product_price = p.price || p.productPrice;
-                        if (!p.product_image) p.product_image = p.image || p.images || p.productImage || p.product_images;
-                        if (!p.product_category) p.product_category = p.category || p.product_cartegory || p.cartegory;
-
                         return p;
-                    }).filter((p: any) => p && p._id);
+                    }).filter(p => p && p._id);
 
-                    console.log(`[BookmarkSync] Sanitized IDs:`, sanitizedBookmarks.map(p => p._id));
+                    // 2. Identify which ones need full data fetch (missing essential fields)
+                    const itemsToFetch = bookmarksWithPartialData.filter(p => !p.product_name || !p.product_price);
 
-                    // Compare IDs to see if they changed
-                    const currentIds = get().wishlistIds;
+                    console.log(`[BookmarkSync] Items needing full detail fetch: ${itemsToFetch.length}`);
+
+                    // 3. Fetch missing details concurrently
+                    const fullDetails = await Promise.all(itemsToFetch.map(async (partial) => {
+                        try {
+                            const pRes = await fetch(`${GET_PRODUCT_API_URL}?id=${partial._id}`);
+                            if (pRes.ok) {
+                                const pData = await pRes.json();
+                                // Handle both direct object or { product: { ... } }
+                                return pData.product || pData.data || pData.result || pData;
+                            }
+                        } catch (err) {
+                            console.error(`[BookmarkSync] Failed to fetch details for ${partial._id}:`, err);
+                        }
+                        return null;
+                    }));
+
+                    // 4. Merge partial and full data
+                    const detailedBookmarks = bookmarksWithPartialData.map(partial => {
+                        const full = fullDetails.find(f => f && (f._id === partial._id || f.id === partial._id));
+                        if (full) {
+                            // Merge and ensure standard fields
+                            const merged = { ...partial, ...full };
+                            merged._id = partial._id; // Keep our verified ID
+                            if (!merged.product_name) merged.product_name = merged.name || merged.title;
+                            if (!merged.product_price) merged.product_price = merged.price || merged.productPrice;
+                            if (!merged.product_image) merged.product_image = merged.image || merged.images || merged.productImage;
+                            return merged;
+                        }
+                        return partial;
+                    });
+
+                    // 5. Final sanitization/normalization
+                    const sanitizedBookmarks = detailedBookmarks.map((p: any) => {
+                        if (!p.product_name) p.product_name = p.name || p.title || p.productName || 'Unknown Product';
+                        if (!p.product_price) p.product_price = p.price || p.productPrice || '0';
+                        if (!p.product_image) p.product_image = p.image || p.images || p.productImage || p.product_images;
+                        if (!p.product_category) p.product_category = p.category || p.product_cartegory || p.cartegory || 'Product';
+                        return p;
+                    });
+
                     const newIds = sanitizedBookmarks.map((p: any) => p._id);
+                    const currentIds = get().wishlistIds;
 
-                    if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+                    // Always update if we fetched details, or if IDs changed
+                    if (itemsToFetch.length > 0 || JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
                         set({
                             wishlistItems: sanitizedBookmarks,
                             wishlistIds: newIds
                         });
-                        console.log(`[BookmarkSync] Updated state with ${sanitizedBookmarks.length} items. First item:`, JSON.stringify(sanitizedBookmarks[0], null, 2));
+                        console.log(`[BookmarkSync] State updated with ${sanitizedBookmarks.length} items.`);
                     } else {
                         console.log(`[BookmarkSync] No changes detected in bookmarks`);
                     }

@@ -1,13 +1,28 @@
-import ErrorView from '@/components/ui/ErrorView';
-import FloatingButton from '@/components/ui/FloatingBtn';
-import HelpCenter, { openHelpSideBar } from '@/components/ui/help';
-import { Colors } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
-import { GET_SHOPS_API_URL, Product, PRODUCTS_API_URL, Shop } from '@/types/product';
-import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import ErrorView from "@/components/ui/ErrorView";
+import FloatingButton from "@/components/ui/FloatingBtn";
+import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  GET_SHOPS_API_URL,
+  Product,
+  PRODUCTS_API_URL,
+  Shop,
+} from "@/types/product";
+import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // interface Shop {
 //   _id: string;
@@ -28,10 +43,12 @@ export default function ShopsScreen() {
   const styles = useMemo(() => appStyles(colors), [colors]);
 
   const [shops, setShops] = useState<Shop[]>([]);
-  const [sortMode, setSortMode] = useState<'default' | 'alpha_asc' | 'alpha_desc' | 'newest_desc' | 'newest_asc'>('default');
+  const [sortMode, setSortMode] = useState<
+    "default" | "alpha_asc" | "alpha_desc" | "newest_desc" | "newest_asc"
+  >("default");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const fetchShops = async (isRefresing = false) => {
@@ -41,7 +58,7 @@ export default function ShopsScreen() {
 
       const [shopsRes, productsRes] = await Promise.all([
         fetch(GET_SHOPS_API_URL),
-        fetch(PRODUCTS_API_URL)
+        fetch(PRODUCTS_API_URL),
       ]);
 
       const shopsData: Shop[] = await shopsRes.json();
@@ -50,7 +67,7 @@ export default function ShopsScreen() {
       if (Array.isArray(shopsData) && Array.isArray(productsData)) {
         // Count products per seller
         const counts: Record<string, number> = {};
-        productsData.forEach(p => {
+        productsData.forEach((p) => {
           const ownerId = p.product_owner_id;
           if (ownerId) {
             counts[ownerId] = (counts[ownerId] || 0) + 1;
@@ -58,9 +75,9 @@ export default function ShopsScreen() {
         });
 
         // Attach counts to shops
-        const shopsWithCounts = shopsData.map(shop => ({
+        const shopsWithCounts = shopsData.map((shop) => ({
           ...shop,
-          productCount: counts[shop.owner_id] || 0
+          productCount: counts[shop.owner_id] || 0,
         }));
 
         setShops(shopsWithCounts);
@@ -69,7 +86,7 @@ export default function ShopsScreen() {
       }
     } catch (error) {
       console.error("Error fetching shops:", error);
-      setError("Network request failed. Please check your connection.");
+      setError("Network Error. Please check your connection.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -86,38 +103,39 @@ export default function ShopsScreen() {
   };
 
   const handleSortCycle = () => {
-    setSortMode(current => {
-      if (current === 'default') return 'alpha_asc';
-      if (current === 'alpha_asc') return 'alpha_desc';
-      if (current === 'alpha_desc') return 'newest_desc';
-      if (current === 'newest_desc') return 'newest_asc';
-      return 'default';
+    setSortMode((current) => {
+      if (current === "default") return "alpha_asc";
+      if (current === "alpha_asc") return "alpha_desc";
+      if (current === "alpha_desc") return "newest_desc";
+      if (current === "newest_desc") return "newest_asc";
+      return "default";
     });
   };
 
   const getSortIcon = () => {
-    if (sortMode === 'default') return 'filter';
-    if (sortMode === 'alpha_asc') return 'sort-alpha-asc';
-    if (sortMode === 'alpha_desc') return 'sort-alpha-desc';
-    if (sortMode === 'newest_desc') return 'sort-amount-desc';
-    if (sortMode === 'newest_asc') return 'sort-amount-asc';
-    return 'filter';
+    if (sortMode === "default") return "filter";
+    if (sortMode === "alpha_asc") return "sort-alpha-asc";
+    if (sortMode === "alpha_desc") return "sort-alpha-desc";
+    if (sortMode === "newest_desc") return "sort-amount-desc";
+    if (sortMode === "newest_asc") return "sort-amount-asc";
+    return "filter";
   };
 
   const filteredShops = useMemo(() => {
-    let result = shops.filter(shop =>
-      shop.shop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      shop.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      shop.slogan.toLowerCase().includes(searchQuery.toLowerCase())
+    let result = shops.filter(
+      (shop) =>
+        shop.shop_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        shop.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        shop.slogan.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
-    if (sortMode === 'alpha_asc') {
+    if (sortMode === "alpha_asc") {
       result.sort((a, b) => a.shop_name.localeCompare(b.shop_name));
-    } else if (sortMode === 'alpha_desc') {
+    } else if (sortMode === "alpha_desc") {
       result.sort((a, b) => b.shop_name.localeCompare(a.shop_name));
-    } else if (sortMode === 'newest_desc') {
+    } else if (sortMode === "newest_desc") {
       result.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
-    } else if (sortMode === 'newest_asc') {
+    } else if (sortMode === "newest_asc") {
       result.sort((a, b) => (a._creationTime || 0) - (b._creationTime || 0));
     }
 
@@ -127,7 +145,14 @@ export default function ShopsScreen() {
   const HeroSection = () => {
     return (
       <View style={styles.hero}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
           <View style={styles.heroIcon}>
             <MaterialIcons name="storefront" size={26} color={colors.light} />
           </View>
@@ -137,7 +162,10 @@ export default function ShopsScreen() {
           Discover amazing sellers on ShopCheap
         </Text>
 
-        <TouchableOpacity style={{ position: 'absolute', top: 16, right: 16 }} onPress={handleSortCycle}>
+        <TouchableOpacity
+          style={{ position: "absolute", top: 16, right: 16 }}
+          onPress={handleSortCycle}
+        >
           <FontAwesome name={getSortIcon()} size={18} color={colors.primary} />
         </TouchableOpacity>
 
@@ -151,44 +179,48 @@ export default function ShopsScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery !== '' && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+          {searchQuery !== "" && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
               <Ionicons name="close-circle" size={18} color={colors.grayish} />
             </TouchableOpacity>
           )}
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   const renderShopItem = ({ item }: { item: Shop }) => (
-    <View
-      style={styles.card}
-    >
+    <View style={styles.card}>
       <View style={styles.cover}>
         <Image
-          source={{ uri: (Array.isArray(item.cover_image) ? item.cover_image[0] : item.cover_image) || 'https://picsum.photos/600/300?blur=10' }}
+          source={{
+            uri:
+              (Array.isArray(item.cover_image)
+                ? item.cover_image[0]
+                : item.cover_image) || "https://picsum.photos/600/300?blur=10",
+          }}
           style={styles.coverImage}
         />
         <View
           style={[
             styles.status,
-            { backgroundColor: item.isOpen ? '#22C55E' : '#6B7280' },
+            { backgroundColor: item.isOpen ? "#22C55E" : "#6B7280" },
           ]}
         >
-          <MaterialIcons
-            name="schedule"
-            size={10}
-            color={colors.light}
-          />
+          <MaterialIcons name="schedule" size={10} color={colors.light} />
           <Text style={styles.statusText}>
-            {item.isOpen ? 'Open' : 'Closed'}
+            {item.isOpen ? "Open" : "Closed"}
           </Text>
         </View>
 
         <View style={styles.logoWrap}>
           <Image
-            source={{ uri: (Array.isArray(item.profile_image) ? item.profile_image[0] : item.profile_image) || 'https://picsum.photos/200?blur=10' }}
+            source={{
+              uri:
+                (Array.isArray(item.profile_image)
+                  ? item.profile_image[0]
+                  : item.profile_image) || "https://picsum.photos/200?blur=10",
+            }}
             style={styles.logoImg}
           />
         </View>
@@ -201,28 +233,31 @@ export default function ShopsScreen() {
       </View>
 
       <View style={styles.cardBody}>
-        <Text style={styles.shopName} numberOfLines={1}>{item.shop_name}</Text>
-        <Text style={styles.tagline} numberOfLines={1}>"{item.slogan}"</Text>
+        <Text style={styles.shopName} numberOfLines={1}>
+          {item.shop_name}
+        </Text>
+        <Text style={styles.tagline} numberOfLines={1}>
+          "{item.slogan}"
+        </Text>
         <Text numberOfLines={2} style={styles.desc}>
           {item.description}
         </Text>
 
         <View style={styles.productCount}>
-          <Text style={{ color: colors.grayish, fontSize: 12 }}>{item.productCount || 0} Products</Text>
+          <Text style={{ color: colors.grayish, fontSize: 12 }}>
+            {item.productCount || 0} Products
+          </Text>
           {/* <TouchableOpacity onPress={() => {}}>
             <Ionicons name='location' size={18} color={colors.lightgray}/>
           </TouchableOpacity> */}
         </View>
 
-        <TouchableOpacity style={styles.visitBtn}
+        <TouchableOpacity
+          style={styles.visitBtn}
           onPress={() => router.push(`/Screens/${item._id}`)}
         >
           <Text style={styles.visitText}>Visit Shop</Text>
-          <MaterialIcons
-            name="arrow-forward"
-            size={16}
-            color={colors.light}
-          />
+          <MaterialIcons name="arrow-forward" size={16} color={colors.light} />
         </TouchableOpacity>
       </View>
     </View>
@@ -248,15 +283,25 @@ export default function ShopsScreen() {
         }
         ListEmptyComponent={
           loading && !refreshing ? (
-            <View style={{ padding: 40, alignItems: 'center', paddingVertical: 200 }}>
+            <View
+              style={{
+                padding: 40,
+                alignItems: "center",
+                paddingVertical: 200,
+              }}
+            >
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 10 }}>Loading shops...</Text>
+              <Text style={{ color: colors.text, marginTop: 10 }}>
+                Loading shops...
+              </Text>
             </View>
           ) : error ? (
             <ErrorView message={error} onRetry={() => fetchShops()} />
           ) : (
-            <View style={{ padding: 20, alignItems: 'center', height: 432 }}>
-              <Text style={{ color: colors.grayish }}>No shops found matching your search.</Text>
+            <View style={{ padding: 20, alignItems: "center", height: 432 }}>
+              <Text style={{ color: colors.grayish }}>
+                No shops found matching your search.
+              </Text>
             </View>
           )
         }
@@ -266,7 +311,7 @@ export default function ShopsScreen() {
       <HelpCenter />
       <FloatingButton
         onPress={openHelpSideBar}
-        icon='message-alert'
+        icon="message-alert"
         color={Colors.primary}
         onLongPress={toggleTheme}
       />
@@ -274,151 +319,152 @@ export default function ShopsScreen() {
   );
 }
 
-const appStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    height: '100%'
-  },
-  hero: {
-    backgroundColor: colors.background,
-    padding: 16,
-    alignItems: 'center',
-    width: '100%'
-  },
-  heroIcon: {
-    backgroundColor: colors.primary,
-    padding: 8,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.text
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    color: colors.grayish,
-    marginBottom: 12
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    width: '100%',
-    borderColor: colors.primary,
-    borderWidth: 1
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingLeft: 8,
-    color: colors.text,
-    fontSize: 12,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.lightgray,
-    marginBottom: 12
-  },
-  cover: {
-    height: 120,
-    backgroundColor: '#D1D5DB'
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%'
-  },
-  status: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 10,
-    color: colors.light,
-    fontWeight: '600'
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 12,
-    padding: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoWrap: {
-    position: 'absolute',
-    bottom: -18,
-    left: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: colors.light,
-    overflow: 'hidden',
-  },
-  logoImg: {
-    width: '100%',
-    height: '100%'
-  },
+const appStyles = (colors: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      height: "100%",
+    },
+    hero: {
+      backgroundColor: colors.background,
+      padding: 16,
+      alignItems: "center",
+      width: "100%",
+    },
+    heroIcon: {
+      backgroundColor: colors.primary,
+      padding: 8,
+      borderRadius: 12,
+      marginBottom: 8,
+    },
+    heroTitle: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    heroSubtitle: {
+      fontSize: 12,
+      color: colors.grayish,
+      marginBottom: 12,
+    },
+    searchBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      width: "100%",
+      borderColor: colors.primary,
+      borderWidth: 1,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingLeft: 8,
+      color: colors.text,
+      fontSize: 12,
+    },
+    card: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: colors.lightgray,
+      marginBottom: 12,
+    },
+    cover: {
+      height: 120,
+      backgroundColor: "#D1D5DB",
+    },
+    coverImage: {
+      width: "100%",
+      height: "100%",
+    },
+    status: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      flexDirection: "row",
+      gap: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 10,
+      color: colors.light,
+      fontWeight: "600",
+    },
+    verifiedBadge: {
+      position: "absolute",
+      top: 8,
+      left: 8,
+      backgroundColor: "rgba(255, 255, 255, 0.8)",
+      borderRadius: 12,
+      padding: 2,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    logoWrap: {
+      position: "absolute",
+      bottom: -18,
+      left: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 2,
+      borderColor: colors.light,
+      overflow: "hidden",
+    },
+    logoImg: {
+      width: "100%",
+      height: "100%",
+    },
 
-  cardBody: {
-    padding: 12,
-    paddingTop: 24
-  },
-  shopName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary
-  },
-  tagline: {
-    fontSize: 10,
-    color: colors.grayish,
-    fontStyle: 'italic'
-  },
-  desc: {
-    fontSize: 12,
-    color: colors.grayish,
-    marginVertical: 6
-  },
+    cardBody: {
+      padding: 12,
+      paddingTop: 24,
+    },
+    shopName: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+    tagline: {
+      fontSize: 10,
+      color: colors.grayish,
+      fontStyle: "italic",
+    },
+    desc: {
+      fontSize: 12,
+      color: colors.grayish,
+      marginVertical: 6,
+    },
 
-  visitBtn: {
-    marginTop: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    alignItems: 'center',
-  },
-  visitText: {
-    color: colors.light,
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  productCount: {
-    borderTopColor: colors.lightgray,
-    borderTopWidth: 1,
-    paddingBottom: 2,
-    padding: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  }
-});
+    visitBtn: {
+      marginTop: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 8,
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: 6,
+      alignItems: "center",
+    },
+    visitText: {
+      color: colors.light,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    productCount: {
+      borderTopColor: colors.lightgray,
+      borderTopWidth: 1,
+      paddingBottom: 2,
+      padding: 4,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+  });

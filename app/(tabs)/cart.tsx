@@ -1,17 +1,60 @@
 import RefreshScrollView from '@/components/RefreshScrollView'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useBottomSheetStore } from '@/store/useBottomSheetStore'
 import { useCartStore } from '@/store/useCartStore'
-import { formatPrice, getFirstImage } from '@/types/product'
+import { CHECKOUT_API_URL, formatPrice, getFirstImage } from '@/types/product'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import React, { useMemo } from 'react'
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useMemo, useState } from 'react'
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 const Cart = () => {
   const { items, total, incrementItem, decrementItem, removeFromCart, clearCart, fetchCart } = useCartStore()
+  const { user } = useAuthStore()
+  const { openOrdersBottomSheet } = useBottomSheetStore()
+  const [loading, setLoading] = useState(false)
   const isEmpty = items.length === 0;
   const router = useRouter();
+
+  const handleCheckout = async () => {
+    if (!user) {
+      // Alert.alert("Error", "You must be logged in to checkout.");
+      router.push('/login');
+      return;
+    }
+
+    if (isEmpty) {
+      Alert.alert("Error", "Your cart is empty.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const url = `${CHECKOUT_API_URL}?userId=${user._id}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert("Success", data.message || "Checkout successful!");
+        clearCart();
+        openOrdersBottomSheet();
+      } else {
+        Alert.alert("Checkout Failed", data.message || "Something went wrong.");
+      }
+    } catch (error) {
+      console.error("Checkout Error:", error);
+      Alert.alert("Error", "An error occurred during checkout. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const confirmClearCart = () => {
     Alert.alert(
@@ -133,7 +176,9 @@ const Cart = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(modals)/checkout')}
+          <TouchableOpacity activeOpacity={0.7}
+            disabled={loading}
+            onPress={handleCheckout}
             style={{
               backgroundColor: colors.primary,
               padding: 12,
@@ -142,17 +187,22 @@ const Cart = () => {
               flexDirection: 'row',
               justifyContent: 'center',
               gap: 4,
+              opacity: loading ? 0.7 : 1
             }}
           >
-            <MaterialIcons name='shopping-cart-checkout' size={24} color={colors.dark} />
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.dark} />
+            ) : (
+              <MaterialIcons name='shopping-cart-checkout' size={24} color={colors.dark} />
+            )}
             <Text style={{
               color: colors.dark,
               fontSize: 14,
               fontWeight: '700',
             }}>
-              Checkout
+              {loading ? 'Processing...' : 'Checkout'}
             </Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
 
         </View>
       </RefreshScrollView>

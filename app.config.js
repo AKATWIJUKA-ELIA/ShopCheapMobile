@@ -1,0 +1,12 @@
+export default ({ config }) => {
+    return {
+        ...config,
+        extra: {
+            ...config.extra,
+            apiBaseUrl: process.env.API_BASE_URL || 'https://cheery-cod-687.convex.site',
+            eas: {
+                projectId: "4423d503-7764-4c08-b1bf-65888dfee794"
+            }
+        }
+    };
+};

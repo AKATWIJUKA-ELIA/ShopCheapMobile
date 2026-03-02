@@ -18,24 +18,122 @@ type Props = {
 export default function Banner({ images }: Props) {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = React.useState(1); // Start at index 1 (first real item)
+  const currentOffset = useRef(width); // Start at index 1 offset
+  const isJumping = useRef(false);
+  const isUserInteracting = useRef(false);
+  const interactionTimeout = useRef<any>(null);
+
+  // Augment images: [Last, 1, 2, 3, 4, 1]
+  const augmentedImages = images.length > 1 ? [images[images.length - 1], ...images, images[0]] : images;
+
+  // Custom smooth scroll with controllable speed and easing
+  const smoothScrollTo = (targetX: number, duration: number = 1200) => {
+    if (isJumping.current) return;
+    const startX = currentOffset.current;
+    const distance = targetX - startX;
+    const startTime = Date.now();
+
+    const step = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic for buttery smooth deceleration
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const newX = startX + distance * eased;
+      scrollRef.current?.scrollTo({ x: newX, animated: false });
+      currentOffset.current = newX;
+      if (progress < 1 && !isUserInteracting.current) {
+        requestAnimationFrame(step);
+      }
+    };
+    requestAnimationFrame(step);
+  };
+
+  // Initial jump to first real item
+  useEffect(() => {
+    if (images.length > 1) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ x: width, animated: false });
+        currentOffset.current = width;
+      }, 100);
+    }
+  }, [images.length]);
 
   useEffect(() => {
     if (images.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => {
-        const nextIndex = (prevIndex + 1) % images.length;
-        scrollRef.current?.scrollTo({
-          x: nextIndex * width,
-          animated: true,
-        });
-        return nextIndex;
-      });
+      if (isJumping.current || isUserInteracting.current) return;
+
+      const nextIndex = currentIndex + 1;
+      const targetX = nextIndex * width;
+
+      smoothScrollTo(targetX);
+      setCurrentIndex(nextIndex);
+
+      // Handle jump after animation
+      if (nextIndex === augmentedImages.length - 1) {
+        setTimeout(() => {
+          isJumping.current = true;
+          scrollRef.current?.scrollTo({ x: width, animated: false });
+          currentOffset.current = width;
+          setCurrentIndex(1);
+          setTimeout(() => { isJumping.current = false; }, 50);
+        }, 1300);
+      }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [images.length]);
+  }, [images.length, augmentedImages.length, currentIndex]);
+
+  const handleScroll = (event: any) => {
+    if (isJumping.current) return;
+    const x = event.nativeEvent.contentOffset.x;
+    currentOffset.current = x;
+
+    // Jump if manually scrolled to clones
+    if (x <= 0) {
+      isJumping.current = true;
+      const jumpX = (augmentedImages.length - 2) * width;
+      scrollRef.current?.scrollTo({ x: jumpX, animated: false });
+      currentOffset.current = jumpX;
+      setCurrentIndex(augmentedImages.length - 2);
+      setTimeout(() => { isJumping.current = false; }, 50);
+    } else if (x >= (augmentedImages.length - 1) * width) {
+      isJumping.current = true;
+      scrollRef.current?.scrollTo({ x: width, animated: false });
+      currentOffset.current = width;
+      setCurrentIndex(1);
+      setTimeout(() => { isJumping.current = false; }, 50);
+    } else {
+      const idx = Math.round(x / width);
+      if (idx !== currentIndex) setCurrentIndex(idx);
+    }
+  };
+
+  const handleTouchStart = () => {
+    isUserInteracting.current = true;
+    if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+  };
+
+  const handleScrollBeginDrag = () => {
+    isUserInteracting.current = true;
+    if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+  };
+
+  const handleScrollEndDrag = () => {
+    interactionTimeout.current = setTimeout(() => {
+      isUserInteracting.current = false;
+    }, 5000);
+  };
+
+  const handleMomentumScrollEnd = (event: any) => {
+    handleScroll(event);
+    if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+    interactionTimeout.current = setTimeout(() => {
+      isUserInteracting.current = false;
+    }, 5000);
+  };
 
   const handlePress = (item: any) => {
     if (item?.id) {
@@ -50,16 +148,21 @@ export default function Banner({ images }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         pagingEnabled
-        scrollEnabled={false}
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        onTouchStart={handleTouchStart}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollEndDrag}
       >
-        {images.map((item, idx) => {
+        {augmentedImages.map((item, idx) => {
           const isObject = typeof item === 'object' && item !== null && 'uri' in item;
           const source = isObject ? (typeof item.uri === 'string' ? { uri: item.uri } : item.uri) : (typeof item === 'string' ? { uri: item } : item);
           const title = isObject ? (item as BannerItem).title : null;
 
           return (
             <TouchableOpacity
-              key={idx}
+              key={`${idx}-${isObject ? (item as BannerItem).id : idx}`}
               activeOpacity={0.9}
               onPress={() => handlePress(item)}
               disabled={!isObject || !(item as BannerItem).id}
@@ -85,7 +188,7 @@ export default function Banner({ images }: Props) {
       </ScrollView>
 
       {/* Pagination Dots */}
-      <View style={styles.pagination}>
+      {/* <View style={styles.pagination}>
         {images.map((_, i) => (
           <View
             key={i}
@@ -95,7 +198,7 @@ export default function Banner({ images }: Props) {
             ]}
           />
         ))}
-      </View>
+      </View> */}
     </View>
   )
 }

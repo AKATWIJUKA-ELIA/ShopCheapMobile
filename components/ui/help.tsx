@@ -55,12 +55,12 @@ export default function HelpCenter() {
 
         <View style={{gap:20,}}>
           <View style={{flexDirection:'row', justifyContent:'space-between', gap:8}}>
-            <TouchableOpacity onPress={() => Linking.openURL('tel:+256772615135')}
+            <TouchableOpacity onPress={() => Linking.openURL('tel:+256787769021')}
                 style={[styles.helpBtn, {backgroundColor:'black'}]}
             >
               <Feather name='phone' size={24} color='white'/>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => Linking.openURL('mailto:jayoabs72@gmail.com')}
+            <TouchableOpacity onPress={() => Linking.openURL('mailto:eliaakjtrn@gmail.com')}
                 style={[styles.helpBtn, {backgroundColor:'black'}]}
             >
               <Feather name='mail' size={24} color='white'/>
@@ -68,7 +68,7 @@ export default function HelpCenter() {
           </View>
 
           <View style={{flexDirection:'row', justifyContent:'space-between', gap:8}}>
-            <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/256772615135')}
+            <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/256787769021')}
                 style={[styles.helpBtn, {backgroundColor:'#25D366'}]}
             >
               <FontAwesome name='whatsapp' size={24} color='white'/>

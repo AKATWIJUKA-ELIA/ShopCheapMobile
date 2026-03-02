@@ -7,7 +7,6 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Platform, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,11 +62,10 @@ export default function RootLayout() {
 
 
   return (
-    // <SafeAreaView style={{flex:1}}>
-    <ThemeProvider>
-      <GestureHandlerRootView>
-        <BottomSheetModalProvider>
-          <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary, }}>
+      <ThemeProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <BottomSheetModalProvider>
             <Stack screenOptions={{
               headerShown: false
             }}
@@ -80,16 +78,13 @@ export default function RootLayout() {
               <Stack.Screen name="+not-found" />
             </Stack>
             {/* )} */}
-            <StatusBar barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'} />
             <UpdatesModalController />
             <CartSync />
-          </SafeAreaView>
-          <StatusBar barStyle={'default'} backgroundColor={Platform.OS === 'android' ? Colors.primary : 'white'} />
-          <Toast />
-        </BottomSheetModalProvider>
-      </GestureHandlerRootView>
-    </ThemeProvider>
-    // </SafeAreaView>
+            <Toast />
+          </BottomSheetModalProvider>
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </SafeAreaView>
   )
 }
 
