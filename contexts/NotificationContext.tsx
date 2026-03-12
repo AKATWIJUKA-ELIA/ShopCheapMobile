@@ -3,12 +3,15 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import { registerBackgroundChatTask } from '@/utils/backgroundWatcher';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -31,8 +34,8 @@ export const useNotifications = () => {
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>(undefined);
   const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription>(undefined);
+  const responseListener = useRef<Notifications.Subscription>(undefined);
 
   const registerForPushNotificationsAsync = async () => {
     let token;
@@ -65,7 +68,9 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
         console.log('Expo Push Token:', token);
       } catch (e) {
-        console.error('Error getting push token:', e);
+        // This is expected if Firebase (FCM) is not configured in app.json/Firebase Console
+        // Background polling for local notifications will still work!
+        console.warn('Push token not acquired (requires FCM config):', e);
       }
     } else {
       console.log('Must use physical device for Push Notifications');
@@ -81,6 +86,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+    registerBackgroundChatTask();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);

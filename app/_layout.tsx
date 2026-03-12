@@ -1,16 +1,21 @@
 import UpdatesModalController from '@/components/Updates';
 import { Colors } from '@/constants/Colors';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CHATS_API_URL } from '@/types/product';
+import * as Notifications from 'expo-notifications';
+import { usePathname, useGlobalSearchParams, router as expoRouter } from 'expo-router';
 
 function CartSync() {
   const { user, refreshUser } = useAuthStore();
@@ -50,7 +55,126 @@ function CartSync() {
   return null;
 }
 
+function ChatNotificationWatcher() {
+  const { user } = useAuthStore();
+  const lastMessageIds = useRef<Record<string, string>>({});
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const checkNewMessages = async () => {
+      try {
+        const res = await fetch(`${CHATS_API_URL}?userId=${user._id}`);
+        if (!res.ok) return;
+        
+        const conversations: any[] = await res.json();
+        
+        conversations.forEach(conv => {
+          const sellerId = conv.recipientId;
+          const messages = conv.messages || [];
+          if (messages.length === 0) return;
+          
+          const lastMsg = messages[messages.length - 1];
+          const isFromOther = lastMsg.sender !== user._id;
+          
+          // If we haven't seen this message yet
+          if (isFromOther && lastMessageIds.current[sellerId] && lastMessageIds.current[sellerId] !== lastMsg._id) {
+            
+            // Check if we are currently in the chat with this seller
+            const isInThisChat = pathname.includes('/chat') && params.sellerId === sellerId;
+            
+            if (!isInThisChat) {
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: conv.shopName || 'New Message',
+                  body: lastMsg.message || 'Sent an image',
+                  data: { 
+                    sellerId, 
+                    shopName: conv.shopName,
+                    url: `/Screens/chat?sellerId=${sellerId}&shopName=${conv.shopName || 'Seller'}`
+                  },
+                },
+                trigger: null,
+              });
+            }
+          }
+          
+          // Update last seen ID
+          if (lastMessageIds.current[sellerId] !== lastMsg._id) {
+            lastMessageIds.current[sellerId] = lastMsg._id;
+            AsyncStorage.setItem('last_seen_messages', JSON.stringify(lastMessageIds.current));
+          }
+        });
+      } catch (e) {
+        console.error('[ChatWatcher] Error:', e);
+      }
+    };
+
+    // Initial load of IDs (don't notify for old messages)
+    const initIds = async () => {
+      try {
+        // First try to load from persistent storage
+        const saved = await AsyncStorage.getItem('last_seen_messages');
+        if (saved) {
+          lastMessageIds.current = JSON.parse(saved);
+        }
+
+        const res = await fetch(`${CHATS_API_URL}?userId=${user._id}`);
+        if (res.ok) {
+          const conversations: any[] = await res.json();
+          conversations.forEach(conv => {
+            const messages = conv.messages || [];
+            if (messages.length > 0) {
+              const lastId = messages[messages.length - 1]._id;
+              if (!lastMessageIds.current[conv.recipientId]) {
+                lastMessageIds.current[conv.recipientId] = lastId;
+              }
+            }
+          });
+          AsyncStorage.setItem('last_seen_messages', JSON.stringify(lastMessageIds.current));
+        }
+      } catch (e) {}
+    };
+
+    initIds();
+    const interval = setInterval(checkNewMessages, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [user?._id, pathname, params.sellerId]);
+
+  return null;
+}
+
+function useNotificationObserver() {
+  useEffect(() => {
+    function redirect(notification: Notifications.Notification) {
+      const url = notification.request.content.data?.url;
+      if (typeof url === 'string') {
+        setTimeout(() => {
+          expoRouter.push(url as any);
+        }, 500); 
+      }
+    }
+
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response?.notification) {
+        redirect(response.notification);
+      }
+    });
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      redirect(response.notification);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+}
+
 export default function RootLayout() {
+  useNotificationObserver();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -64,8 +188,9 @@ export default function RootLayout() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary, }}>
       <ThemeProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <BottomSheetModalProvider>
+        <NotificationProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <BottomSheetModalProvider>
             <Stack screenOptions={{
               headerShown: false
             }}
@@ -80,10 +205,12 @@ export default function RootLayout() {
             {/* )} */}
             <UpdatesModalController />
             <CartSync />
+            <ChatNotificationWatcher />
             <Toast />
           </BottomSheetModalProvider>
         </GestureHandlerRootView>
-      </ThemeProvider>
+      </NotificationProvider>
+    </ThemeProvider>
     </SafeAreaView>
   )
 }

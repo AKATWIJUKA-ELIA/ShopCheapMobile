@@ -5,7 +5,7 @@ import { showToast } from "@/utils/toast";
 import { uploadImages } from "@/utils/upload";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
+// import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -63,27 +63,27 @@ export default function SellerRegistrationScreen() {
     }
   };
 
-  const handleGetCurrentLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return Alert.alert("Permission Denied", "Permission to access location was denied");
-      }
+  // const handleGetCurrentLocation = async () => {
+  //   try {
+  //     const { status } = await Location.requestForegroundPermissionsAsync();
+  //     if (status !== 'granted') {
+  //       return Alert.alert("Permission Denied", "Permission to access location was denied");
+  //     }
 
-      const loc = await Location.getCurrentPositionAsync({});
-      const newRegion = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      setMapRegion(newRegion);
-      setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-    } catch (error) {
-      Alert.alert("Error", "Failed to get current location");
-      console.error(error);
-    }
-  };
+  //     const loc = await Location.getCurrentPositionAsync({});
+  //     const newRegion = {
+  //       latitude: loc.coords.latitude,
+  //       longitude: loc.coords.longitude,
+  //       latitudeDelta: 0.01,
+  //       longitudeDelta: 0.01,
+  //     };
+  //     setMapRegion(newRegion);
+  //     setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+  //   } catch (error) {
+  //     Alert.alert("Error", "Failed to get current location");
+  //     console.error(error);
+  //   }
+  // };
 
   const handleMapPress = (e: any) => {
     const coords = e.nativeEvent.coordinate;
@@ -308,7 +308,7 @@ export default function SellerRegistrationScreen() {
           <View style={styles.mapControls}>
             <TouchableOpacity
               style={styles.currentLocBtn}
-              onPress={handleGetCurrentLocation}
+              // onPress={handleGetCurrentLocation}
             >
               <MaterialIcons name="my-location" size={24} color="white" />
               <Text style={{ color: 'white', marginLeft: 8 }}>Use Current Location</Text>

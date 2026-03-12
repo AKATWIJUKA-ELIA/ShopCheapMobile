@@ -239,13 +239,17 @@ export default function ChatScreen() {
     const result: any[] = [];
     let lastDate = '';
 
-    messages.forEach((msg) => {
+    messages.forEach((msg, index) => {
       const dateStr = formatHeaderDate(msg._creationTime || Date.now());
       if (dateStr !== lastDate) {
         result.push({ _id: `date-${dateStr}`, type: 'date', date: dateStr });
         lastDate = dateStr;
       }
-      result.push({ ...msg, type: 'message' });
+      result.push({ 
+        ...msg, 
+        type: 'message', 
+        _id: msg._id || `msg-${msg._creationTime || Date.now()}-${index}` 
+      });
     });
 
     return result;
@@ -414,7 +418,7 @@ export default function ChatScreen() {
         <Animated.FlatList
           ref={flatListRef}
           data={processedMessages}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item, index) => item._id || `temp-${index}`}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -433,7 +437,7 @@ export default function ChatScreen() {
           {attachedImages.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
               {attachedImages.map((uri, index) => (
-                <View key={index} style={styles.attachmentPreview}>
+                <View key={uri} style={styles.attachmentPreview}>
                   <Image source={{ uri }} style={styles.attachmentImage} />
                   <TouchableOpacity 
                     style={styles.removeAttachment} 
