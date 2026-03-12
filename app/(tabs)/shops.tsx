@@ -3,26 +3,11 @@ import FloatingButton from "@/components/ui/FloatingBtn";
 import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import {
-  GET_SHOPS_API_URL,
-  Product,
-  PRODUCTS_API_URL,
-  Shop,
-} from "@/types/product";
+import {GET_SHOPS_API_URL, Product, PRODUCTS_API_URL, Shop} from "@/types/product";
 import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {ActivityIndicator, Animated, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View} from "react-native";
 
 // interface Shop {
 //   _id: string;
@@ -46,6 +31,10 @@ export default function ShopsScreen() {
   const [sortMode, setSortMode] = useState<
     "default" | "alpha_asc" | "alpha_desc" | "newest_desc" | "newest_asc"
   >("default");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [sortButtonLayout, setSortButtonLayout] = useState<{ y: number, height: number } | null>(null);
+  const sortButtonRef = useRef<View>(null);
+  const menuAnim = useRef(new Animated.Value(0)).current;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,15 +91,44 @@ export default function ShopsScreen() {
     fetchShops(true);
   };
 
-  const handleSortCycle = () => {
-    setSortMode((current) => {
-      if (current === "default") return "alpha_asc";
-      if (current === "alpha_asc") return "alpha_desc";
-      if (current === "alpha_desc") return "newest_desc";
-      if (current === "newest_desc") return "newest_asc";
-      return "default";
-    });
+  const toggleSortMenu = () => {
+    if (!showSortMenu && sortButtonRef.current) {
+      sortButtonRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+        setSortButtonLayout({ y: pageY, height });
+        setShowSortMenu(true);
+        menuAnim.setValue(0);
+        Animated.spring(menuAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }).start();
+      });
+    } else {
+      Animated.timing(menuAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => setShowSortMenu(false));
+    }
   };
+
+  const handleSortSelect = (mode: typeof sortMode) => {
+    setSortMode(mode);
+    Animated.timing(menuAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setShowSortMenu(false));
+  };
+
+  const sortOptions: { label: string; value: typeof sortMode }[] = [
+    { label: "Default", value: "default" },
+    { label: "A - Z (Alphabetical)", value: "alpha_asc" },
+    { label: "Z - A (Alphabetical)", value: "alpha_desc" },
+    { label: "Newest First", value: "newest_desc" },
+    { label: "Oldest First", value: "newest_asc" },
+  ];
 
   const getSortIcon = () => {
     if (sortMode === "default") return "filter";
@@ -142,52 +160,7 @@ export default function ShopsScreen() {
     return result;
   }, [shops, searchQuery, sortMode]);
 
-  const HeroSection = () => {
-    return (
-      <View style={styles.hero}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            gap: 10,
-            alignItems: "center",
-          }}
-        >
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="storefront" size={26} color={colors.light} />
-          </View>
-          <Text style={styles.heroTitle}>Explore Shops</Text>
-        </View>
-        <Text style={styles.heroSubtitle}>
-          Discover amazing sellers on ShopCheap
-        </Text>
 
-        <TouchableOpacity
-          style={{ position: "absolute", top: 16, right: 16 }}
-          onPress={handleSortCycle}
-        >
-          <FontAwesome name={getSortIcon()} size={18} color={colors.primary} />
-        </TouchableOpacity>
-
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={colors.grayish} />
-          <TextInput
-            placeholder="Search shops by name, description or slogan..."
-            placeholderTextColor={colors.grayish}
-            style={styles.searchInput}
-            cursorColor={colors.primary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery !== "" && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color={colors.grayish} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   const renderShopItem = ({ item }: { item: Shop }) => (
     <View style={styles.card}>
@@ -269,9 +242,54 @@ export default function ShopsScreen() {
         data={error || (loading && !refreshing) ? [] : filteredShops}
         keyExtractor={(item) => item._id}
         numColumns={2}
-        columnWrapperStyle={{ gap: 12 }}
-        contentContainerStyle={{ padding: 10, paddingBottom: 100 }}
-        ListHeaderComponent={<HeroSection />}
+        columnWrapperStyle={{ gap: 4 }}
+        contentContainerStyle={{ padding: 10, }}
+        ListHeaderComponent={
+          <View style={styles.hero}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <View style={styles.heroIcon}>
+                <MaterialIcons name="storefront" size={26} color={colors.light} />
+              </View>
+              <Text style={styles.heroTitle}>Explore Shops</Text>
+            </View>
+            <Text style={styles.heroSubtitle}>
+              Discover amazing sellers on ShopCheap
+            </Text>
+
+            <View ref={sortButtonRef} collapsable={false} style={{ position: "absolute", top: 16, right: 16 }}>
+              <TouchableOpacity
+                onPress={toggleSortMenu}
+                style={{ padding: 4 }}
+              >
+                <FontAwesome name={getSortIcon()} size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={18} color={colors.grayish} />
+              <TextInput
+                placeholder="Search shops by name, description or slogan..."
+                placeholderTextColor={colors.grayish}
+                style={styles.searchInput}
+                cursorColor={colors.primary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery !== "" && (
+                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                  <Ionicons name="close-circle" size={18} color={colors.grayish} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        }
         renderItem={renderShopItem}
         refreshControl={
           <RefreshControl
@@ -315,6 +333,59 @@ export default function ShopsScreen() {
         color={Colors.primary}
         onLongPress={toggleTheme}
       />
+
+      <Modal
+        visible={showSortMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={[
+            styles.sortDropdown,
+            sortButtonLayout && {
+              top: sortButtonLayout.y + sortButtonLayout.height - 20,
+              right: 16
+            }
+          ]}>
+            <Animated.View style={[
+              styles.sortDropdownContent,
+              {
+                opacity: menuAnim,
+                transform: [
+                  { scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) },
+                  { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }
+                ]
+              }
+            ]}>
+              {sortOptions.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.sortOption,
+                    sortMode === opt.value && { backgroundColor: colors.primary + '15' }
+                  ]}
+                  onPress={() => handleSortSelect(opt.value)}
+                >
+                  <Text style={[
+                    styles.sortOptionText,
+                    sortMode === opt.value && { color: colors.primary, fontWeight: '700' }
+                    ]}>
+                    {opt.label}
+                  </Text>
+                  {sortMode === opt.value && (
+                    <FontAwesome name="check" size={12} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -372,7 +443,7 @@ const appStyles = (colors: any) =>
       overflow: "hidden",
       borderWidth: 1,
       borderColor: colors.lightgray,
-      marginBottom: 12,
+      marginBottom: 8,
     },
     cover: {
       height: 120,
@@ -466,5 +537,37 @@ const appStyles = (colors: any) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    sortDropdown: {
+      position: 'absolute',
+    },
+    sortDropdownContent: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 6,
+      width: 190,
+      elevation: 20,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.lightgray,
+    },
+    sortOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      borderRadius: 8,
+    },
+    sortOptionText: {
+      color: colors.text,
+      fontSize: 14,
     },
   });

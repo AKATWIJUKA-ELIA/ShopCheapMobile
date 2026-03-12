@@ -16,6 +16,7 @@ const ScreensLayout = () => {
             }}
             />
             <Stack.Screen name='[id]' options={{}} />
+            <Stack.Screen name='chat' options={{}} />
             <Stack.Screen name='order-details/[id]' options={{}} />
         </Stack>
     )

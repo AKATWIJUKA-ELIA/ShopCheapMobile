@@ -50,6 +50,9 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
         <Text style={styles.name} numberOfLines={2}>
           {product.product_name}
         </Text>
+        <Text style={styles.description} numberOfLines={1}>
+          {product.product_description}
+        </Text>
         <Text style={styles.price}>{formatPrice(product.product_price)}</Text>
         <View style={styles.buttonContainer}>
           {qty > 0 ? (
@@ -95,12 +98,12 @@ const appStyles = (colors: any) =>
     container: {
       borderColor: colors.lightgray,
       borderWidth: 1,
-      borderRadius: 16,
+      borderRadius: 6,
       height: 240,
-      width: "48%",
-      marginBottom: 12,
+      width: "49.5%",
+      marginBottom:4,
       backgroundColor: colors.background,
-      padding: 7,
+      padding: 6,
       shadowColor: "#000",
       shadowOffset: {
         width: 0,
@@ -127,16 +130,16 @@ const appStyles = (colors: any) =>
       marginBottom: 4,
     },
     price: {
-      color: colors.primary,
+      color: colors.green,
       fontSize: 15,
       fontWeight: "bold",
       marginBottom: 2,
     },
     description: {
-      color: colors.gray,
-      fontSize: 12,
-      lineHeight: 16,
-      marginBottom: 8,
+      color: colors.grayish,
+      fontSize: 10,
+      lineHeight: 14,
+      marginBottom: 4,
     },
     buttonContainer: {
       flexDirection: "row",

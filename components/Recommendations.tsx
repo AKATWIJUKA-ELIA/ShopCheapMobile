@@ -133,20 +133,22 @@ const Recommendations = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginVertical: 10,
+        // marginTop: 8,
+        marginBottom:4
     },
     loadingContainer: {
         height: 150,
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop:4
     },
     listContent: {
-        paddingHorizontal: 16,
-        gap: 16,
+        paddingHorizontal: 8,
+        gap: 4,
     },
     itemContainer: {
-        width: ITEM_WIDTH,
-        height: 180,
+        width: 120,
+        height: 120,
         borderRadius: 12,
         overflow: 'hidden',
         elevation: 3,
@@ -164,11 +166,11 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: 10,
+        padding: 8,
     },
     name: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 10,
         fontWeight: 'bold',
     },
 });

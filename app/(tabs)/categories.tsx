@@ -101,6 +101,7 @@ const Categories = () => {
             fontWeight: "600",
             textAlign: "center",
             marginTop: 5,
+            marginBottom: 4,
           }}
         >
           All Categories

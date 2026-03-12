@@ -35,8 +35,8 @@ const appStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 60,
-    marginBottom: 6
+    height: 87,
+    width: 87,
   },
   image: {
     width: '100%',

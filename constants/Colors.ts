@@ -15,6 +15,7 @@ export const Colors = {
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'black',
   card:'#29333b',
+  green:'#22c55e',
 }
 
 export const lightColors = {
@@ -31,5 +32,6 @@ export const lightColors = {
   graybackground:'rgba(20, 27, 40, 4)',
   borderLine:'white',
   card:'#d6deeaff',
+  green:'#22c55e',
 }
 

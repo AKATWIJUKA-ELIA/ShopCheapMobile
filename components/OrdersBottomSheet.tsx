@@ -6,14 +6,15 @@ import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { ActivityIndicator, Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 
 export interface OrdersBottomSheetRef {
     open: () => void;
     close: () => void;
 }
 
+
+////orders need to display from latest on top, so we can reverse the orders array when setting state or before rendering
 const OrdersBottomSheet = forwardRef<OrdersBottomSheetRef>((_, ref) => {
     const { colors } = useTheme();
     const { user } = useAuthStore();

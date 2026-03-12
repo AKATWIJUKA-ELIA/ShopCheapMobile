@@ -5,7 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 type Props = {
   title: string
-  actionText?: string
+  actionText?: React.ReactNode
   onActionPress?: () => void;
 }
 
@@ -17,7 +17,11 @@ export default function SectionHeader({ title, actionText, onActionPress }: Prop
       <Text style={styles.title}>{title}</Text>
       {actionText && (
         <TouchableOpacity onPress={onActionPress}>
-          <Text style={styles.action}>{actionText}</Text>
+          {typeof actionText === "string" ? (
+            <Text style={styles.action}>{actionText}</Text>
+          ) : (
+            actionText
+          )}
         </TouchableOpacity>
       )}
     </View>
@@ -31,6 +35,9 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.card,
+    // borderRadius: 8,
+    // marginBottom: 8,
   },
   title: {
     color: colors.text,

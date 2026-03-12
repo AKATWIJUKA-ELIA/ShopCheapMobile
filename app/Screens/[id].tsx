@@ -173,6 +173,7 @@ export default function ShopDetailsScreen() {
       <FlatList
         data={products}
         numColumns={2}
+        showsVerticalScrollIndicator={false}
         keyExtractor={(item) => item._id}
         columnWrapperStyle={{ gap: 12 }}
         contentContainerStyle={{ gap: 12, paddingBottom: 10 }}
@@ -210,6 +211,10 @@ export default function ShopDetailsScreen() {
 
         <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(sellerUser?.email)}>
           <Ionicons name="mail" size={18} color={colors.light} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.contactBtn} onPress={() => router.push({ pathname: '/Screens/chat', params: { shopId: id, shopName: shop?.shop_name, sellerId: shop?.owner_id || sellerUser?._id, shopImage: shop?.profile_image } })}>
+          <Ionicons name="chatbox" size={18} color={colors.light} />
         </TouchableOpacity>
       </View>
 
@@ -368,10 +373,10 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   fixedContacts: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    flexDirection: 'row',
-    gap: 8,
+    bottom: 24,
+    right: 20,
+    flexDirection: 'column-reverse',
+    gap: 12,
     zIndex: 20,           // stays above content
   },
 

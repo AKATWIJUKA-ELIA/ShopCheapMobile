@@ -130,6 +130,22 @@ export const UPLOAD_IMAGES_API_URL = `${API_BASE_URL}/upload-images`;
 export const UPDATE_SHOP_API_URL = `${API_BASE_URL}/update-shop`;
 export const GET_RECOMMENDATIONS_API_URL = `${API_BASE_URL}/recommendations`;
 export const CHECKOUT_API_URL = `${API_BASE_URL}/checkout`;
+export const CHATS_API_URL = `${API_BASE_URL}/chats`;
+
+export interface ChatFile {
+    fileType: 'null' | 'image' | 'audio';
+    fileUrl?: string[];
+}
+
+export interface ChatMessage {
+    _id?: string;
+    _creationTime?: number;
+    sender: string;
+    receiver: string;
+    message?: string;
+    file?: ChatFile;
+    status?: 'sending' | 'sent' | 'error';
+}
 
 /**
  * Normalize image to string[] format

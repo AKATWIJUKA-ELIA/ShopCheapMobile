@@ -11,8 +11,8 @@ import { banners as bannerImages } from "@/constants/data";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CATEGORIES_API_URL, Category, GET_SHOPS_API_URL, Product, PRODUCTS_API_URL } from "@/types/product";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, FlatList, LayoutAnimation, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -21,7 +21,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const banners = bannerImages;
 
 import { useSearchStore } from "@/components/SearchStore";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 
 const Home = () => {
   const router = useRouter();
@@ -33,6 +33,10 @@ const Home = () => {
   const [sortMode, setSortMode] = useState<
     "default" | "price_asc" | "price_desc" | "alpha_asc" | "alpha_desc"
   >("default");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [sortButtonLayout, setSortButtonLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const sortButtonRef = useRef<View>(null);
+  const menuAnim = useRef(new Animated.Value(0)).current;
   const [categories, setCategories] = useState<Category[]>([]);
   const [bannerItems, setBannerItems] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,15 +96,44 @@ const Home = () => {
     }
   }, [sortMode, query]);
 
-  const handleSortCycle = () => {
-    setSortMode((current) => {
-      if (current === "default") return "price_asc";
-      if (current === "price_asc") return "price_desc";
-      if (current === "price_desc") return "alpha_asc";
-      if (current === "alpha_asc") return "alpha_desc";
-      return "default";
-    });
+  const toggleSortMenu = () => {
+    if (!showSortMenu && sortButtonRef.current) {
+      sortButtonRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+        setSortButtonLayout({ x: pageX, y: pageY, width, height });
+        setShowSortMenu(true);
+        menuAnim.setValue(0);
+        Animated.spring(menuAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }).start();
+      });
+    } else {
+      Animated.timing(menuAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => setShowSortMenu(false));
+    }
   };
+
+  const handleSortSelect = (mode: typeof sortMode) => {
+    setSortMode(mode);
+    Animated.timing(menuAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setShowSortMenu(false));
+  };
+
+  const sortOptions: { label: string; value: typeof sortMode }[] = [
+    { label: "Default", value: "default" },
+    { label: "Price: Low to High", value: "price_asc" },
+    { label: "Price: High to Low", value: "price_desc" },
+    { label: "A - Z", value: "alpha_asc" },
+    { label: "Z - A", value: "alpha_desc" },
+  ];
 
   const getSortIcon = () => {
     if (sortMode === "default") return "filter";
@@ -159,7 +192,6 @@ const Home = () => {
               Loading products...
             </Text>
           </View>
-          <View style={{ height: 200, backgroundColor: colors.background }} />
         </View>
       );
     }
@@ -198,7 +230,6 @@ const Home = () => {
         >
           <Text style={{ color: colors.text }}>No products available</Text>
         </View>
-        <View style={{ height: 200, backgroundColor: colors.background }} />
       </View>
     );
   };
@@ -210,11 +241,11 @@ const Home = () => {
           data={filteredProducts}
           numColumns={2}
           renderItem={({ item, index }) => (
-            <RenderItem item={item} index={index} />
+            <RenderItem item={item} index={index}/>
           )}
           keyExtractor={(item) => item._id}
           columnWrapperStyle={{ justifyContent: "space-between" }}
-          contentContainerStyle={{ padding: 7 }}
+          contentContainerStyle={{ padding: 8 }}
           ListHeaderComponent={
             <View style={{ backgroundColor: colors.background, flex: 1 }}>
               <Banner
@@ -222,7 +253,7 @@ const Home = () => {
               />
               <SectionHeader
                 title="Top Categories"
-                actionText="See all"
+                actionText={<Ionicons name="chevron-forward" size={20} color={colors.primary} />}
                 onActionPress={() => router.push("/(tabs)/categories")}
               />
               <ScrollView
@@ -247,33 +278,32 @@ const Home = () => {
                 ))}
               </ScrollView>
               <Recommendations />
-
-              <View style={{ marginTop: 14, backgroundColor: colors.background }} />
-
-              <View
-                style={{
-                  backgroundColor: colors.primary,
-                  marginTop: 10,
-                  marginBottom: 10,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexDirection: "row",
-                }}
-              >
-                <SectionHeader title="All Products" />
-                <TouchableOpacity
-                  style={{ right: 0, padding: 10 }}
-                  onPress={handleSortCycle}
+                <View
+                  style={{
+                    backgroundColor: colors.card,
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexDirection: "row",
+                    paddingRight: 8,
+                    marginBottom: 4,
+                  }}
                 >
-                  <FontAwesome name={getSortIcon()} size={24} color={colors.light} />
-                </TouchableOpacity>
+                  <SectionHeader title="All Products" />
+                  <View ref={sortButtonRef} collapsable={false}>
+                    <TouchableOpacity
+                      style={{ padding: 10 }}
+                      onPress={toggleSortMenu}
+                    >
+                      <FontAwesome name={getSortIcon()} size={24} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
-          }
-          ListEmptyComponent={renderEmptyOrLoading}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+            }
+            ListEmptyComponent={renderEmptyOrLoading}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
       <HelpCenter />
       <FloatingButton
         onPress={openHelpSideBar}
@@ -281,6 +311,59 @@ const Home = () => {
         color={Colors.primary}
         onLongPress={toggleTheme}
       />
+
+      <Modal
+        visible={showSortMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={[
+            styles.sortDropdown,
+            sortButtonLayout && {
+              top: sortButtonLayout.y + sortButtonLayout.height - 20,
+              right: 16
+            }
+          ]}>
+            <Animated.View style={[
+              styles.sortDropdownContent,
+              {
+                opacity: menuAnim,
+                transform: [
+                  { scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) },
+                  { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }
+                ]
+              }
+            ]}>
+              {sortOptions.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.sortOption,
+                    sortMode === opt.value && { backgroundColor: colors.primary + '15' }
+                  ]}
+                  onPress={() => handleSortSelect(opt.value)}
+                >
+                  <Text style={[
+                    styles.sortOptionText,
+                    sortMode === opt.value && { color: colors.primary, fontWeight: '700' }
+                  ]}>
+                    {opt.label}
+                  </Text>
+                  {sortMode === opt.value && (
+                    <FontAwesome name="check" size={14} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -295,10 +378,41 @@ const appStyles = (colors: any) =>
     },
     categoriesWrap: {
       flexDirection: "row",
-      flexWrap: "wrap",
     },
     gridWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
+    },
+    sortDropdown: {
+      position: 'absolute',
+    },
+    sortDropdownContent: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      padding: 6,
+      width: 200,
+      elevation: 20,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.lightgray,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)', // Slightly darker for better focus
+    },
+    sortOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+      borderRadius: 8,
+    },
+    sortOptionText: {
+      color: colors.text,
+      fontSize: 16, // slightly larger for easier tapping
     },
   });
