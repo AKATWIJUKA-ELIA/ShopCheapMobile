@@ -145,6 +145,11 @@ export interface ChatMessage {
     message?: string;
     file?: ChatFile;
     status?: 'sending' | 'sent' | 'error';
+    replyTo?: {
+        messageId: string;
+        text: string;
+        sender: string;
+    };
 }
 
 /**

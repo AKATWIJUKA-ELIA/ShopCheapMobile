@@ -6,11 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Dimensions, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -26,9 +24,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerImages, setViewerImages] = useState<string[]>([]);
-  const [viewerIndex, setViewerIndex] = useState(0);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
   const fetchMessages = async (isSilent = false) => {
     console.log(`[Chat] fetchMessages triggered. isSilent: ${isSilent}, currentUserId: ${currentUserId}, sellerId: ${sellerId}`);
@@ -78,7 +74,8 @@ export default function ChatScreen() {
             const hasChanged = prev.length !== newTotalMessages.length || 
                                prev.some((msg, idx) => 
                                  msg._id !== newTotalMessages[idx]?._id || 
-                                 msg.status !== newTotalMessages[idx]?.status
+                                 msg.status !== newTotalMessages[idx]?.status ||
+                                 msg.replyTo?.messageId !== newTotalMessages[idx]?.replyTo?.messageId
                                );
 
             return hasChanged ? newTotalMessages : prev;
@@ -105,11 +102,6 @@ export default function ChatScreen() {
     // Near-instant polling (3 seconds)
     const interval = setInterval(() => fetchMessages(true), 3000);
 
-    // Keep scroll at bottom when keyboard shows
-    const keyboardShowSub = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    });
-
     // Refresh when app comes back to foreground
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
@@ -121,7 +113,6 @@ export default function ChatScreen() {
     return () => {
       clearInterval(interval);
       subscription.remove();
-      keyboardShowSub.remove();
     };
   }, [currentUserId, sellerId]);
 
@@ -166,12 +157,18 @@ export default function ChatScreen() {
       status: 'sending',
       _creationTime: Date.now(),
       file: imagesToUpload.length > 0 ? { fileType: 'image', fileUrl: imagesToUpload } : undefined,
+      replyTo: replyingTo ? {
+        messageId: replyingTo._id || '',
+        text: replyingTo.message || (replyingTo.file?.fileType === 'image' ? '[Image]' : ''),
+        sender: replyingTo.sender
+      } : undefined
     };
 
     // Add to UI immediately
     setMessages(prev => [...prev, optimisticMessage]);
     setMessageText('');
     setAttachedImages([]);
+    setReplyingTo(null);
 
     try {
       let fileData = undefined;
@@ -220,46 +217,13 @@ export default function ChatScreen() {
     }
   };
 
-  const formatHeaderDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-    const diffDays = Math.round((today - messageDate) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'long' });
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const processedMessages = useMemo(() => {
-    const result: any[] = [];
-    let lastDate = '';
-
-    messages.forEach((msg) => {
-      const dateStr = formatHeaderDate(msg._creationTime || Date.now());
-      if (dateStr !== lastDate) {
-        result.push({ _id: `date-${dateStr}`, type: 'date', date: dateStr });
-        lastDate = dateStr;
-      }
-      result.push({ ...msg, type: 'message' });
-    });
-
-    return result;
-  }, [messages]);
-
   useEffect(() => {
     if (messages.length > 0) {
-      // Small timeout to allow FlatList to update layout
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 500); 
-      return () => clearTimeout(timer);
+      }, 100);
     }
-  }, [messages.length === 0]); // Trigger only when messages first load
+  }, [messages.length]);
 
   // Move ImageGrid and SwipeableMessage outside or memoize them to prevent re-renders
   const ImageGrid = useMemo(() => {
@@ -267,21 +231,11 @@ export default function ChatScreen() {
       const count = urls.length;
       if (count === 0) return null;
 
-      const openViewer = (index: number) => {
-        setViewerImages(urls);
-        setViewerIndex(index);
-        setViewerVisible(true);
-      };
-
       if (count === 1) {
         return (
-          <TouchableOpacity 
-            style={styles.messageImagesContainer}
-            onPress={() => openViewer(0)}
-            activeOpacity={0.9}
-          >
+          <View style={styles.messageImagesContainer}>
             <Image source={{ uri: urls[0] }} style={styles.singleImage} />
-          </TouchableOpacity>
+          </View>
         );
       }
 
@@ -296,19 +250,14 @@ export default function ChatScreen() {
             if (count === 3 && i === 0) itemStyle = styles.gridItemFull;
             
             return (
-              <TouchableOpacity 
-                key={i} 
-                style={[styles.gridItem, itemStyle]}
-                onPress={() => openViewer(i)}
-                activeOpacity={0.9}
-              >
+              <View key={i} style={[styles.gridItem, itemStyle]}>
                 <Image source={{ uri: url }} style={styles.gridImage} />
                 {i === 3 && remainingCount > 0 && (
                   <View style={styles.imageOverlay}>
                     <Text style={styles.overlayText}>+{remainingCount}</Text>
                   </View>
                 )}
-              </TouchableOpacity>
+              </View>
             );
           })}
         </View>
@@ -316,53 +265,60 @@ export default function ChatScreen() {
     };
   }, [styles]);
 
-  const renderItem = React.useCallback(({ item, index }: { item: any; index: number }) => {
-    if (item.type === 'date') {
-      return (
-        <View style={styles.dateHeader}>
-          <View style={styles.dateLine} />
-          <Text style={styles.dateText}>{item.date}</Text>
-          <View style={styles.dateLine} />
-        </View>
-      );
-    }
-
+  const renderMessageRow = React.useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
     const isMe = item.sender === currentUserId;
 
+    const longPressGesture = Gesture.LongPress()
+      .onStart(() => {
+        runOnJS(setReplyingTo)(item);
+      });
+
     return (
-      <Animated.View
-        entering={FadeInDown.delay(index * 10).springify().damping(15)}
-        style={[
-          styles.messageRow,
-          isMe ? styles.messageRowRight : styles.messageRowLeft
-        ]}
-      >
-        <View style={[
-          styles.messageBubble,
-          isMe ? styles.messageBubbleMe : styles.messageBubbleThem
-        ]}>
-          {item.file?.fileType === 'image' && item.file.fileUrl && (
-            <ImageGrid urls={item.file.fileUrl} />
-          )}
-          {item.message && (
-            <Text style={[styles.messageText, isMe ? styles.messageTextMe : null]}>{item.message}</Text>
-          )}
-          <View style={styles.messageFooter}>
-            {item._creationTime && (
-              <Text style={[styles.timestampText, isMe ? styles.timestampTextMe : null]}>
-                {new Date(item._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            )}
-            {isMe && (
-              <View style={styles.statusIndicator}>
-                {item.status === 'sending' && <ActivityIndicator size={10} color="#fff" style={{ marginLeft: 4 }} />}
-                {item.status === 'sent' && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
-                {item.status === 'error' && <Ionicons name="alert-circle" size={14} color="#f87171" style={{ marginLeft: 4 }} />}
+      <GestureDetector gesture={longPressGesture}>
+        <Animated.View
+          entering={FadeInDown.delay(index * 10).springify().damping(15)}
+          style={[
+            styles.messageRow,
+            isMe ? styles.messageRowRight : styles.messageRowLeft
+          ]}
+        >
+          <View style={[
+            styles.messageBubble,
+            isMe ? styles.messageBubbleMe : styles.messageBubbleThem
+          ]}>
+            {item.replyTo && (
+              <View style={[styles.replyInBubble, isMe ? styles.replyInBubbleMe : styles.replyInBubbleThem]}>
+                <Text style={styles.replySenderName} numberOfLines={1}>
+                  {item.replyTo.sender === currentUserId ? 'You' : (shopName || 'Seller')}
+                </Text>
+                <Text style={styles.replyTextSummary} numberOfLines={2}>
+                  {item.replyTo.text}
+                </Text>
               </View>
             )}
+            {item.file?.fileType === 'image' && item.file.fileUrl && (
+              <ImageGrid urls={item.file.fileUrl} />
+            )}
+            {item.message && (
+              <Text style={[styles.messageText, isMe ? styles.messageTextMe : null]}>{item.message}</Text>
+            )}
+            <View style={styles.messageFooter}>
+              {item._creationTime && (
+                <Text style={[styles.timestampText, isMe ? styles.timestampTextMe : null]}>
+                  {new Date(item._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              )}
+              {isMe && (
+                <View style={styles.statusIndicator}>
+                  {item.status === 'sending' && <ActivityIndicator size={10} color="#fff" style={{ marginLeft: 4 }} />}
+                  {item.status === 'sent' && <Ionicons name="checkmark-done" size={14} color="#fff" style={{ marginLeft: 4 }} />}
+                  {item.status === 'error' && <Ionicons name="alert-circle" size={14} color="#f87171" style={{ marginLeft: 4 }} />}
+                </View>
+              )}
+            </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </GestureDetector>
     );
   }, [currentUserId, shopName, styles, ImageGrid]);
 
@@ -413,9 +369,9 @@ export default function ChatScreen() {
       ) : (
         <Animated.FlatList
           ref={flatListRef}
-          data={processedMessages}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
+          data={messages}
+          keyExtractor={(item) => item._id || `local-${item._creationTime}`}
+          renderItem={renderMessageRow}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -430,6 +386,26 @@ export default function ChatScreen() {
 
       <View style={styles.inputContainer}>
         <View style={styles.inputMainWrapper}>
+          {replyingTo && (
+            <Animated.View 
+              entering={FadeInDown.duration(200)} 
+              exiting={FadeInDown.duration(200)} // Using FadeIn for both to avoid weird jitter if FadeOutDown is buggy
+              style={styles.replyPreviewContainer}
+            >
+              <View style={styles.replyPreviewBar} />
+              <View style={styles.replyPreviewContent}>
+                <Text style={styles.replyPreviewName} numberOfLines={1}>
+                  Replying to {replyingTo.sender === currentUserId ? 'yourself' : (shopName || 'Seller')}
+                </Text>
+                <Text style={styles.replyPreviewText} numberOfLines={1}>
+                  {replyingTo.message || (replyingTo.file?.fileType === 'image' ? 'Image' : '')}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyBtn}>
+                <Ionicons name="close-circle" size={20} color={colors.grayish} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
           {attachedImages.length > 0 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
               {attachedImages.map((uri, index) => (
@@ -459,7 +435,6 @@ export default function ChatScreen() {
                 multiline
                 maxLength={500}
                 cursorColor={colors.primary}
-                autoFocus
               />
             </View>
           </View>
@@ -472,58 +447,6 @@ export default function ChatScreen() {
           <Ionicons name="send" size={20} color={colors.light} />
         </TouchableOpacity>
       </View>
-
-      {/* Image Viewer Modal */}
-      <Modal
-        visible={viewerVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setViewerVisible(false)}
-      >
-        <View style={styles.viewerBackground}>
-          <TouchableOpacity 
-            style={styles.viewerCloseBtn}
-            onPress={() => setViewerVisible(false)}
-          >
-            <Ionicons name="close" size={32} color="#fff" />
-          </TouchableOpacity>
-          
-          <ScrollView 
-            horizontal 
-            pagingEnabled 
-            showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: viewerIndex * SCREEN_WIDTH, y: 0 }}
-            onMomentumScrollEnd={(e) => {
-              const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-              setViewerIndex(newIndex);
-            }}
-          >
-            {viewerImages.map((uri, index) => (
-              <View key={index} style={styles.viewerImageContainer}>
-                <Image 
-                  source={{ uri }} 
-                  style={styles.viewerImage} 
-                  resizeMode="contain"
-                />
-              </View>
-            ))}
-          </ScrollView>
-
-          {viewerImages.length > 1 && (
-            <View style={styles.viewerDots}>
-              {viewerImages.map((_, i) => (
-                <View 
-                  key={i} 
-                  style={[
-                    styles.viewerDot, 
-                    i === viewerIndex ? styles.viewerDotActive : null
-                  ]} 
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -630,6 +553,63 @@ const appStyles = (colors: any) => StyleSheet.create({
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  replyInBubble: {
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+  },
+  replyInBubbleMe: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderLeftColor: '#fff',
+  },
+  replyInBubbleThem: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderLeftColor: colors.primary,
+  },
+  replySenderName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  replyTextSummary: {
+    fontSize: 12,
+    color: colors.text,
+    opacity: 0.8,
+  },
+  replyPreviewContainer: {
+    backgroundColor: colors.card,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.lightgray,
+    marginBottom: 8,
+  },
+  replyPreviewBar: {
+    width: 4,
+    height: '80%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  replyPreviewContent: {
+    flex: 1,
+  },
+  replyPreviewName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  replyPreviewText: {
+    fontSize: 13,
+    color: colors.grayish,
+  },
+  closeReplyBtn: {
+    padding: 4,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -757,71 +737,5 @@ const appStyles = (colors: any) => StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '700',
-  },
-  viewerBackground: {
-    flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  viewerCloseBtn: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
-    right: 20,
-    zIndex: 10,
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 24,
-  },
-  viewerImageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  viewerImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-  },
-  viewerDots: {
-    position: 'absolute',
-    bottom: 40,
-    flexDirection: 'row',
-    alignSelf: 'center',
-  },
-  viewerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 4,
-  },
-  viewerDotActive: {
-    backgroundColor: '#fff',
-  },
-  dateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-  },
-  dateLine: {
-    width: 30, // Shorter lines for a cleaner look
-    height: 1,
-    backgroundColor: colors.lightgray,
-  },
-  dateText: {
-    fontSize: 11,
-    color: colors.grayish,
-    marginHorizontal: 12,
-    fontWeight: '700',
-    backgroundColor: colors.card,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.lightgray,
-    textTransform: 'uppercase',
   },
 });
