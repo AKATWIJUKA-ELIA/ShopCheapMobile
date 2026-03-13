@@ -16,9 +16,9 @@ jobs:
 
       - name: Push to destination repo
         env:
-          DEST_PAT: ${{ secrets.DESTPAT }}
-          DEST_REPO: ${{ secrets.DESTREPO }}
-          DEST_BRANCH: ${{ secrets.DESTBRANCH }}
+          DESTPAT: ${{ secrets.DESTPAT }}
+          DESTREPO: ${{ secrets.DESTREPO }}
+          DESTBRANCH: ${{ secrets.DESTBRANCH }}
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
