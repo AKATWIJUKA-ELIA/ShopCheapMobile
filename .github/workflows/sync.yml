@@ -1,0 +1,28 @@
+name: Sync to other repo
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to destination repo
+        env:
+          DEST_PAT: ${{ secrets.DESTPAT }}
+          DEST_REPO: ${{ secrets.DESTREPO }}
+          DEST_BRANCH: ${{ secrets.DESTBRANCH }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add dest "https://x-access-token:${DEST_PAT}@github.com/${DEST_REPO>
+          git push --force dest HEAD:${DESTBRANCH}
