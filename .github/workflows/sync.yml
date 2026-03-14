@@ -17,8 +17,8 @@ jobs:
       - name: Push to destination repo
         env:
           DESTPAT: ${{ secrets.DESTPAT }}
-          DESTREPO: ${{ secrets.DESTREPO }}
-          DESTBRANCH: ${{ secrets.DESTBRANCH }}
+          DESTREPO: ShopCheapUg-com/ShopCheapMobile
+          DESTBRANCH: staging
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
