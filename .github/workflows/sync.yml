@@ -16,7 +16,7 @@ jobs:
 
       - name: Push to destination repo
         env:
-          DESTPAT: ${{ secrets.DESTPAT }}
+          DESTPAT: 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
           DESTREPO: ShopCheapUg-com/ShopCheapMobile
           DESTBRANCH: staging
         run: |
