@@ -23,6 +23,9 @@ jobs:
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Destination repo (owner/name): ${DESTREPO}"
+          echo "Destination branch: ${DESTBRANCH}"
+          echo "Destination URL (no token): https://github.com/${DESTREPO}.git"
 
           git remote add dest "https://x-access-token:${DESTPAT}@github.com/${DESTREPO}.git"
           git push --force dest HEAD:${DESTBRANCH}
