@@ -27,6 +27,7 @@ jobs:
           echo "PAT:${DESTPAT} "
           echo "Destination branch: ${DESTBRANCH}"
           echo "Destination URL (no token): https://github.com/${DESTREPO}.git"
+          git ls-remote "https://x-access-token:${DESTPAT}@github.com/${DESTREPO}.git"
 
           git remote add dest "https://x-access-token:${DESTPAT}@github.com/${DESTREPO}.git"
           git push --force dest HEAD:${DESTBRANCH}
