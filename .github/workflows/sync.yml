@@ -16,8 +16,8 @@ jobs:
 
       - name: Push to destination repo
         env:
-          DESTPAT: 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
-          DESTREPO: ShopCheapUg-com/ShopCheapMobile
+          DESTPAT: ${{secrets.DESTPAT}}
+          DESTREPO: AKATWIJUKA-ELIA/ShopCheapMobile
           DESTBRANCH: staging
         run: |
           set -euo pipefail
