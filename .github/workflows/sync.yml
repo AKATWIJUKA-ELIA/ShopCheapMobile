@@ -20,6 +20,19 @@ jobs:
           DESTREPO: AKATWIJUKA-ELIA/ShopCheapMobile
           DESTBRANCH: staging
         run: |
+        # 1) prove the secret is present WITHOUT printing it
+          if [ -z "${DESTPAT}" ]; then
+          echo "DESTPAT is empty (secret not injected)."
+          exit 1
+          fi
+          echo "DESTPAT is present (length=${#DESTPAT})."
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # 2) use the PAT and show what identity GitHub thinks it is (no secret leakage)
+        AUTH_HEADER=$(printf "x-access-token:%s" "$DESTPAT" | base64 -w 0)
+        curl -sS -H "Authorization: Basic $AUTH_HEADER" https://api.github.com/user | sed -n '1,40p'
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
