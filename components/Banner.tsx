@@ -5,6 +5,7 @@ import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View
 
 const { width } = Dimensions.get('window')
 
+
 export type BannerItem = {
   id?: string;
   title?: string;

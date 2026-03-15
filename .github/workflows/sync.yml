@@ -1,0 +1,38 @@
+name: Sync to other repo
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to destination repo/staging
+        env:
+          DESTPAT: ${{ secrets.DESTPAT }}
+          DESTREPO: AKATWIJUKA-ELIA/ShopCheapMobile
+          DESTBRANCH: staging
+        run: |
+          set -euo pipefail
+
+          # 1) prove the secret is present WITHOUT printing it
+          if [ -z "${DESTPAT}" ]; then
+            echo "DESTPAT is empty (secret not injected)."
+            exit 1
+          fi
+          echo "DESTPAT is present (length=${#DESTPAT})."
+
+          # 3) push using the PAT
+          git remote remove dest 2>/dev/null || true
+          git remote add dest "https://x-access-token:${DESTPAT}@github.com/${DESTREPO}.git"
+
+          git ls-remote dest
+          git push --force dest "HEAD:${DESTBRANCH}"
