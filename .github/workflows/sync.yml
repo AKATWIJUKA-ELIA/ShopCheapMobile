@@ -30,13 +30,6 @@ jobs:
           fi
           echo "DESTPAT is present (length=${#DESTPAT})."
 
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # 2) show what identity GitHub thinks the PAT is (no secret leakage)
-          AUTH_HEADER="$(printf "x-access-token:%s" "$DESTPAT" | base64 -w 0)"
-          curl -sS -H "Authorization: Basic $AUTH_HEADER" https://api.github.com/user | sed -n '1,40p'
-
           # 3) push using the PAT
           git remote remove dest 2>/dev/null || true
           git remote add dest "https://x-access-token:${DESTPAT}@github.com/${DESTREPO}.git"
