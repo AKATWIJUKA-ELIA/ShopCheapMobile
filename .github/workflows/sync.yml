@@ -13,9 +13,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false 
+          persist-credentials: false
 
-      - name: Push to destination repo
+      - name: Push to destination repo/staging
         env:
           DESTPAT: ${{ secrets.DESTPAT }}
           DESTREPO: AKATWIJUKA-ELIA/ShopCheapMobile
