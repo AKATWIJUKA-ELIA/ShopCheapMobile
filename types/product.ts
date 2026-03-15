@@ -89,6 +89,7 @@ export interface Order {
         product_name: string;
         product_image: string | string[];
         product_price: string;
+        product_owner_id?: string;
     };
 }
 
@@ -100,7 +101,15 @@ export function formatPrice(price: string | number): string {
 }
 
 // API endpoint
-export const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://cheery-cod-687.convex.site';
+const getBaseUrl = () => {
+    const url = Constants.expoConfig?.extra?.apiBaseUrl;
+    if (!url) {
+        throw new Error('API_BASE_URL is not defined in the environment configuration.');
+    }
+    return url;
+};
+
+export const API_BASE_URL = getBaseUrl();
 export const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
 export const CATEGORIES_API_URL = `${API_BASE_URL}/categories`;
 export const AUTH_API_URL = `${API_BASE_URL}/auth`;

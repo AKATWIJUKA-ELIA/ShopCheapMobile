@@ -38,7 +38,7 @@ TaskManager.defineTask(BACKGROUND_CHAT_TASK, async () => {
         hasNew = true;
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: conv.shopName || 'New Message',
+            title: conv.shopName || 'ShopCheapUG',
             body: lastMsg.message || 'Sent an image',
             data: { 
               sellerId, 

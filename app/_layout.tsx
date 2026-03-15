@@ -12,6 +12,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import OrdersBottomSheet, { OrdersBottomSheetRef } from '@/components/OrdersBottomSheet';
+import { useBottomSheetStore } from '@/store/useBottomSheetStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CHATS_API_URL } from '@/types/product';
 import * as Notifications from 'expo-notifications';
@@ -179,6 +181,39 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  /* 
+  const ordersSheetRef = useRef<OrdersBottomSheetRef>(null);
+  const isOrdersOpen = useBottomSheetStore(state => state.isOrdersBottomSheetOpen);
+  const ordersOpenTrigger = useBottomSheetStore(state => state.ordersOpenTrigger);
+
+  useEffect(() => {
+    if (ordersOpenTrigger > 0) {
+      console.log(`[RootLayout] Orders trigger count: ${ordersOpenTrigger}`);
+      if (ordersSheetRef.current) {
+        ordersSheetRef.current.open();
+      } else {
+        console.warn("[RootLayout] ordersSheetRef.current is null on open!");
+      }
+    }
+  }, [ordersOpenTrigger]);
+
+  useEffect(() => {
+    if (!isOrdersOpen) {
+      console.log(`[RootLayout] Orders store closed, calling ref close`);
+      ordersSheetRef.current?.close();
+    }
+  }, [isOrdersOpen]);
+  */
+
+  /*
+  useEffect(() => {
+    if (!isOrdersOpen) {
+      console.log(`[RootLayout] Orders store closed, calling ref close`);
+      ordersSheetRef.current?.close();
+    }
+  }, [isOrdersOpen]);
+  */
+
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
@@ -186,33 +221,40 @@ export default function RootLayout() {
 
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary, }}>
-      <ThemeProvider>
-        <NotificationProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }}>
+        <ThemeProvider>
+          <NotificationProvider>
             <BottomSheetModalProvider>
-            <Stack screenOptions={{
-              headerShown: false
-            }}
-            >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
-              <Stack.Screen name="(modals)" options={{ headerShown: false, presentation: 'modal' }} />
-              <Stack.Screen name="screens" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            {/* )} */}
-            <UpdatesModalController />
-            <CartSync />
-            <ChatNotificationWatcher />
-            <Toast />
-          </BottomSheetModalProvider>
-        </GestureHandlerRootView>
-      </NotificationProvider>
-    </ThemeProvider>
-    </SafeAreaView>
-  )
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
+                <Stack.Screen name="(modals)" options={{ headerShown: false, presentation: 'modal' }} />
+                <Stack.Screen 
+                  name="(modals)/orders" 
+                  options={{ 
+                    headerShown: false, 
+                    presentation: 'formSheet',
+                    sheetAllowedDetents: [0.7, 0.9],
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 24,
+                  }} 
+                />
+                <Stack.Screen name="Screens" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <UpdatesModalController />
+              <CartSync />
+              <ChatNotificationWatcher />
+              <Toast />
+              {/* <OrdersBottomSheet ref={ordersSheetRef} /> */}
+            </BottomSheetModalProvider>
+          </NotificationProvider>
+        </ThemeProvider>
+      </SafeAreaView>
+    </GestureHandlerRootView>
+  );
 }
 
 

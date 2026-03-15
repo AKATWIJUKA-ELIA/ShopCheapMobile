@@ -24,8 +24,26 @@ export default function Login() {
   const { setUser } = useAuthStore();
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const sanitizedEmail = email.trim();
+    const sanitizedPassword = password.trim();
+
+    const validateEmail = (email: string) => {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    };
+
+    if (!sanitizedEmail || !sanitizedPassword) {
       Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    if (!validateEmail(sanitizedEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    if (sanitizedPassword.length < 6) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters');
       return;
     }
 
@@ -34,7 +52,7 @@ export default function Login() {
       const response = await fetch(AUTH_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: sanitizedEmail, password: sanitizedPassword }),
       });
 
       const data = await response.json();

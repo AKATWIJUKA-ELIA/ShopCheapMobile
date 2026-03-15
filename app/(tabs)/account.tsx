@@ -1,4 +1,3 @@
-import ChangePasswordModal from '@/components/Account/ChangePasswordModal';
 import AddressScreen from '@/components/Account/DeliveryAddress';
 import RefreshScrollView from '@/components/RefreshScrollView';
 import AccountSettings, { usePopUpState } from '@/components/ui/dark-mode';
@@ -81,12 +80,8 @@ const Account = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const darkThemeEnabled = theme === 'dark';
   const { isPopUpOpen } = usePopUpState();
-  const [isChangePassOpen, setIsChangePassOpen] = useState(false);
 
 
-  const handleChangePassword = () => {
-    setIsChangePassOpen(true);
-  };
 
   return (
     <RefreshScrollView style={styles.container}>
@@ -148,6 +143,14 @@ const Account = () => {
               <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
             </TouchableOpacity> */}
 
+            <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/orders')}>
+              <View style={styles.itemLeft}>
+                <Ionicons name='receipt-outline' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>My Orders</Text>
+              </View>
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/bookmarks')}>
               <View style={styles.itemLeft}>
                 <Feather name='bookmark' size={20} color={colors.text} />
@@ -184,6 +187,14 @@ const Account = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         <View>
+          <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/(modals)/notifications')}>
+            <View style={styles.itemLeft}>
+              <Ionicons name='notifications-outline' size={20} color={colors.text} />
+              <Text style={styles.itemLabel}>Notifications</Text>
+            </View>
+            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+          </TouchableOpacity>
+
           {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
             <View style={styles.itemLeft}>
               <Ionicons name='settings-outline' size={20} color={colors.text} />
@@ -204,13 +215,6 @@ const Account = () => {
             />
           </View>
 
-          <TouchableOpacity style={[styles.item, darkThemeEnabled && styles.darkCard]} onPress={handleChangePassword} activeOpacity={0.7}>
-            <View style={styles.itemLeft}>
-              <MaterialIcons name='security' size={24} color={colors.text} />
-              <Text style={[styles.itemLabel, darkThemeEnabled && { color: colors.text }]}>Change Password</Text>
-            </View>
-            <Feather name="chevron-right" size={24} color={colors.text} />
-          </TouchableOpacity>
 
           <Link href='https://shopcheapug.com' asChild style={[styles.item,]}>
             <TouchableOpacity style={[styles.item, darkThemeEnabled && styles.darkCard]}>
@@ -293,10 +297,6 @@ const Account = () => {
 
       <AccountSettings />
       <HelpCenter />
-      <ChangePasswordModal
-        visible={isChangePassOpen}
-        onClose={() => setIsChangePassOpen(false)}
-      />
     </RefreshScrollView>
   );
 };

@@ -15,12 +15,20 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function ChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { shopId, shopName, sellerId, shopImage } = params;
+  const { shopId, shopName, sellerId, shopImage, username, avatar } = params;
   const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
   const { user } = useAuthStore();
   const currentUserId = user?._id;
   const flatListRef = useRef<Animated.FlatList<ChatMessage>>(null);
+
+  // Identity state to handle fallbacks
+  const [chatIdentity, setChatIdentity] = useState({
+    name: shopName 
+      ? (shopName as string).toLowerCase().replace(/\s+/g, '-') 
+      : (username as string) || 'Chat',
+    image: (shopImage as string) || (avatar as string) || 'https://picsum.photos/200'
+  });
 
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -54,6 +62,21 @@ export default function ChatScreen() {
         
         if (conversationData && conversationData.messages) {
           console.log(`[Chat] Found conversation! messages: ${conversationData.messages.length}`);
+          
+          // Update identity if API gives us more specific info
+          const shopNameFromApi = conversationData.recipientShopName || conversationData.shopName || conversationData.shop_name;
+          const apiName = shopNameFromApi || conversationData.recipientName;
+          const apiImage = conversationData.recipientShopAvatar || conversationData.shop_image || conversationData.profile_image || conversationData.recipientAvatar || conversationData.recipientImage || conversationData.avatar;
+          
+          if (apiName || apiImage) {
+            setChatIdentity(prev => ({
+              name: (shopNameFromApi || (conversationData.recipientName && conversationData.recipientName.includes(' ')))
+                ? (apiName as string).toLowerCase().replace(/\s+/g, '-') 
+                : apiName || prev.name,
+              image: apiImage || prev.image
+            }));
+          }
+          
           const remoteMessages: ChatMessage[] = conversationData.messages.map((m: any) => ({
             ...m,
             status: 'sent' as const
@@ -220,6 +243,28 @@ export default function ChatScreen() {
     }
   };
 
+  const getInitials = (name: string) => {
+    if (!name) return '??';
+    const cleanName = name.replace(/-/g, ' ');
+    const parts = cleanName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0].toUpperCase() + parts[1][0].toUpperCase());
+    }
+    return parts[0][0].toUpperCase();
+  };
+
+  const formatMessageBubbleDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const diffDays = Math.round((today - messageDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  };
+
   const formatHeaderDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -232,7 +277,11 @@ export default function ChatScreen() {
     if (diffDays < 7) {
       return date.toLocaleDateString([], { weekday: 'long' });
     }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    // For older messages, if it's the same year, omit it, else show it
+    if (date.getFullYear() === now.getFullYear()) {
+      return date.toLocaleDateString([], { month: 'long', day: 'numeric' });
+    }
+    return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   const processedMessages = useMemo(() => {
@@ -248,12 +297,15 @@ export default function ChatScreen() {
       result.push({ 
         ...msg, 
         type: 'message', 
-        _id: msg._id || `msg-${msg._creationTime || Date.now()}-${index}` 
+        _id: msg._id || `msg-${msg._creationTime || Date.now()}-${index}`,
+        // For visual testing, we'll mark messages as unread if they are from the seller and new
+        // Ideally the API provides this, but we'll add the UI support now
+        isUnread: msg.sender !== currentUserId && (msg as any).unread === true
       });
     });
 
     return result;
-  }, [messages]);
+  }, [messages, currentUserId]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -343,20 +395,30 @@ export default function ChatScreen() {
       >
         <View style={[
           styles.messageBubble,
-          isMe ? styles.messageBubbleMe : styles.messageBubbleThem
+          isMe ? styles.messageBubbleMe : styles.messageBubbleThem,
+          !isMe && item.isUnread && styles.unreadBubble
         ]}>
           {item.file?.fileType === 'image' && item.file.fileUrl && (
-            <ImageGrid urls={item.file.fileUrl} />
+            <View style={styles.imageGridWrapper}>
+              <ImageGrid urls={item.file.fileUrl} />
+            </View>
           )}
           {item.message && (
             <Text style={[styles.messageText, isMe ? styles.messageTextMe : null]}>{item.message}</Text>
           )}
           <View style={styles.messageFooter}>
-            {item._creationTime && (
-              <Text style={[styles.timestampText, isMe ? styles.timestampTextMe : null]}>
-                {new Date(item._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            )}
+            <View style={{ alignItems: 'flex-end' }}>
+              {item._creationTime && (
+                <>
+                  <Text style={[styles.timestampText, isMe ? styles.timestampTextMe : null]}>
+                    {new Date(item._creationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <Text style={[styles.timestampText, isMe ? styles.timestampTextMe : null, { fontSize: 8 }]}>
+                    {formatMessageBubbleDate(item._creationTime)}
+                  </Text>
+                </>
+              )}
+            </View>
             {isMe && (
               <View style={styles.statusIndicator}>
                 {item.status === 'sending' && <ActivityIndicator size={10} color="#fff" style={{ marginLeft: 4 }} />}
@@ -368,7 +430,7 @@ export default function ChatScreen() {
         </View>
       </Animated.View>
     );
-  }, [currentUserId, shopName, styles, ImageGrid]);
+  }, [currentUserId, chatIdentity.name, styles, ImageGrid]);
 
   if (!currentUserId) {
     return (
@@ -398,12 +460,18 @@ export default function ChatScreen() {
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Image
-              source={{ uri: (shopImage as string) || 'https://picsum.photos/200' }}
-              style={styles.headerAvatar}
-            />
+            {chatIdentity.image ? (
+              <Image
+                source={{ uri: chatIdentity.image }}
+                style={styles.headerAvatar}
+              />
+            ) : (
+              <View style={[styles.headerAvatar, styles.initialsContainerSmall]}>
+                <Text style={styles.initialsTextSmall}>{getInitials(chatIdentity.name)}</Text>
+              </View>
+            )}
             <View>
-              <Text style={styles.headerTitle}>{shopName || 'Chat'}</Text>
+              <Text style={styles.headerTitle}>{chatIdentity.name}</Text>
               <Text style={styles.headerSubtitle}>Typically replies instantly</Text>
             </View>
           </View>
@@ -463,7 +531,7 @@ export default function ChatScreen() {
                 multiline
                 maxLength={500}
                 cursorColor={colors.primary}
-                autoFocus
+                // autoFocus
               />
             </View>
           </View>
@@ -565,6 +633,18 @@ const appStyles = (colors: any) => StyleSheet.create({
     marginRight: 10,
     backgroundColor: colors.card,
   },
+  initialsContainerSmall: {
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+  },
+  initialsTextSmall: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   headerTitle: {
     fontSize: 15,
     fontWeight: '700',
@@ -591,23 +671,32 @@ const appStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   messageBubble: {
-    maxWidth: '50%',
-    paddingHorizontal: 8,
+    maxWidth: '80%',
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 14,
-    minWidth: 100,
-    minHeight:20
+    borderRadius: 18,
+    minWidth: 80,
   },
   messageBubbleThem: {
     backgroundColor: colors.card,
-    borderBottomLeftRadius: 1,
+    borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: colors.lightgray,
   },
   messageBubbleMe: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 1,
-
+    borderBottomRightRadius: 4,
+  },
+  unreadBubble: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    borderTopLeftRadius: 4,
+    borderBottomLeftRadius: 4,
+  },
+  imageGridWrapper: {
+    marginBottom: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   messageText: {
     fontSize: 15,

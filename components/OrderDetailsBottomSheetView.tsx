@@ -1,7 +1,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBottomSheetStore } from "@/store/useBottomSheetStore";
 import { Order, formatPrice, getFirstImage } from "@/types/product";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetBackdrop, BottomSheetView, BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -16,8 +16,8 @@ const OrderDetailsBottomSheetView = forwardRef<OrderDetailsBottomSheetRef>((_, r
   const { colors } = useTheme();
   const styles = useMemo(() => appStyles(colors), [colors]);
 
-  const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["50%", "80%"], []);
+  const modalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ["70%", "90%"], []);
 
   const [order, setOrder] = useState<Order | null>(null);
 
@@ -25,13 +25,10 @@ const OrderDetailsBottomSheetView = forwardRef<OrderDetailsBottomSheetRef>((_, r
   useImperativeHandle(ref, () => ({
     open: (selectedOrder: Order) => {
       setOrder(selectedOrder);
-      // Small delay to ensure the previous close animation doesn't interfere
-      setTimeout(() => {
-        sheetRef.current?.snapToIndex(1);
-      }, 100);
+      modalRef.current?.present();
     },
     close: () => {
-      sheetRef.current?.close();
+      modalRef.current?.dismiss();
     },
   }));
 
@@ -45,18 +42,15 @@ const OrderDetailsBottomSheetView = forwardRef<OrderDetailsBottomSheetRef>((_, r
   );
 
   return (
-    <BottomSheet
-      ref={sheetRef}
-      index={-1}
+    <BottomSheetModal
+      ref={modalRef}
       snapPoints={snapPoints}
       enablePanDownToClose
       backgroundStyle={{ backgroundColor: colors.background }}
       handleIndicatorStyle={{ backgroundColor: colors.primary }}
       backdropComponent={renderBackdrop}
-      onChange={(index) => {
-        if (index === -1) {
-          useBottomSheetStore.getState().closeOrderDetails();
-        }
+      onDismiss={() => {
+        useBottomSheetStore.getState().closeOrderDetails();
       }}
     >
       <BottomSheetView style={styles.container}>
@@ -117,7 +111,7 @@ const OrderDetailsBottomSheetView = forwardRef<OrderDetailsBottomSheetRef>((_, r
           </>
         )}
       </BottomSheetView>
-    </BottomSheet>
+    </BottomSheetModal>
   );
 });
 

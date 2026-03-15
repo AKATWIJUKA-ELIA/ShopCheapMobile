@@ -44,7 +44,7 @@ const Cart = () => {
       if (data.success) {
         Alert.alert("Success", data.message || "Checkout successful!");
         clearCart();
-        openOrdersBottomSheet();
+        router.push('/(modals)/orders');
       } else {
         Alert.alert("Checkout Failed", data.message || "Something went wrong.");
       }

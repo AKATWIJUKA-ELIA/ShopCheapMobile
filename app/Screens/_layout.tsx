@@ -1,6 +1,7 @@
+import CartHeader from '@/components/Cart/CartHeader'
 import { Stack } from 'expo-router'
 import React from 'react'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 const ScreensLayout = () => {
     return (
@@ -17,6 +18,11 @@ const ScreensLayout = () => {
             />
             <Stack.Screen name='[id]' options={{}} />
             <Stack.Screen name='chat' options={{}} />
+            <Stack.Screen name='cart' options={{
+                title: 'Cart',
+                headerShown: true,
+                header: () => <CartHeader />,
+            }} />
             <Stack.Screen name='order-details/[id]' options={{}} />
         </Stack>
     )

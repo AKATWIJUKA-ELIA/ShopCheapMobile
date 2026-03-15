@@ -4,15 +4,31 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { registerBackgroundChatTask } from '@/utils/backgroundWatcher';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useNotificationStore } from '@/store/useNotificationStore';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const { notificationsEnabled } = useSettingsStore.getState();
+    const isMessage = notification.request.content.data?.type === 'message' || 
+                      notification.request.content.data?.type === 'chat';
+    
+    // If notifications are disabled, only show alerts for messages/chats
+    // Or if the user strictly meant "disables the alerts [for everything]", then:
+    // return { shouldShowAlert: false, ... }
+    
+    // Based on "toggle off just disables the alerts but the messages come through"
+    // and "unsubscribes ... except for messages", let's suppress ALL alerts if disabled,
+    // but ensure the store still gets the data (handled in the listener).
+    
+    return {
+      shouldShowAlert: notificationsEnabled,
+      shouldPlaySound: notificationsEnabled,
+      shouldSetBadge: true, // Always allow badge for unread counts
+      shouldShowBanner: notificationsEnabled,
+      shouldShowList: true,
+    };
+  },
 });
 
 interface NotificationContextType {
@@ -90,6 +106,20 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
+      
+      const { notificationsEnabled } = useSettingsStore.getState();
+      const isMessage = notification.request.content.data?.type === 'message' || 
+                        notification.request.content.data?.type === 'chat';
+      
+      // Save to notification history only if enabled OR if it's a message/chat
+      if (notificationsEnabled || isMessage) {
+        const { addNotification } = useNotificationStore.getState();
+        addNotification({
+          title: notification.request.content.title || 'Notification',
+          message: notification.request.content.body || '',
+          type: (notification.request.content.data?.type as any) || 'system',
+        });
+      }
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {

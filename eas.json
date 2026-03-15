@@ -9,24 +9,25 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "API_BASE_URL": "https://cheery-cod-687.convex.site"
+        "APP_VARIANT": "development"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "API_BASE_URL": "https://cheery-cod-687.convex.site"
+        "APP_VARIANT": "development"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "API_BASE_URL": "https://resilient-mastiff-366.convex.site"
+        "APP_VARIANT": "production"
       }
     }
   },
+
   "submit": {
     "production": {}
   }

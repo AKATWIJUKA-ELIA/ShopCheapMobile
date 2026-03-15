@@ -7,6 +7,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import ChangePasswordModal from "@/components/Account/ChangePasswordModal";
+import { MaterialIcons } from "@expo/vector-icons";
 
 
 export default function UserProfile() {
@@ -18,6 +20,7 @@ export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
+  const [isChangePassOpen, setIsChangePassOpen] = useState(false);
   const [editData, setEditData] = useState({
     username: user?.username || "",
     phone: user?.phoneNumber || "",
@@ -222,8 +225,31 @@ export default function UserProfile() {
               <Text style={styles.editBtnText}>Edit Profile</Text>
             </TouchableOpacity>
           )}
+
+          <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Security</Text>
+          <View style={styles.infoCard}>
+            <TouchableOpacity 
+              style={styles.infoItem} 
+              activeOpacity={0.7}
+              onPress={() => setIsChangePassOpen(true)}
+            >
+              <View style={styles.iconBox}>
+                <MaterialIcons name="security" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.infoTexts}>
+                <Text style={styles.label}>Password</Text>
+                <Text style={styles.value}>Change Password</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={colors.grayish} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
+
+      <ChangePasswordModal
+        visible={isChangePassOpen}
+        onClose={() => setIsChangePassOpen(false)}
+      />
     </View>
   );
 }

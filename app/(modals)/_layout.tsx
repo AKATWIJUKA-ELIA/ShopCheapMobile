@@ -14,10 +14,18 @@ export default function ModalsLayout() {
     }}>
       <Stack.Screen name="profile" options={{ title: 'Profile' }} />
       <Stack.Screen name="addresses" options={{ title: 'Addresses' }} />
-      <Stack.Screen name="payments" options={{ title: 'Payment Methods' }} />
       <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
       <Stack.Screen name="dark-mode" options={{ title: 'Appearance' }} />
       <Stack.Screen name="help" options={{ title: 'Help Center' }} />
+      <Stack.Screen 
+        name="orders" 
+        options={{ 
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.7, 0.9],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 24,
+        }} 
+      />
     </Stack>
   )
 }

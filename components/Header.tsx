@@ -87,7 +87,7 @@ const HomeHeader = () => {
           </TouchableOpacity>
 
           {/* Cart with badge (distinct products count) */}
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/Screens/cart')} activeOpacity={0.85}>
             <View>
               <Ionicons name="cart-outline" size={24} color={colors.primary} />
               {distinctCount > 0 ? (

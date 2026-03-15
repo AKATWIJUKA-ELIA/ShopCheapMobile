@@ -3,10 +3,12 @@ import { useBottomSheetStore } from "@/store/useBottomSheetStore";
 import { useCartStore } from '@/store/useCartStore';
 import { formatPrice } from "@/types/product";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const CartHeader = ({ title = "My Cart" }) => {
+  const router = useRouter();
   const { total } = useCartStore();
   const { openOrdersBottomSheet } = useBottomSheetStore();
 
@@ -16,14 +18,14 @@ const CartHeader = ({ title = "My Cart" }) => {
   return (
     <View style={styles.header}>
       {/* Back Button */}
-      <View style={styles.iconButton}>
-        <Ionicons name="cart" size={24} color={colors.primary} />
-      </View>
+      <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color={colors.primary} />
+      </TouchableOpacity>
 
       {/* Title */}
       <Text style={styles.title}>{formatPrice(total)}</Text>
 
-      <TouchableOpacity style={styles.iconButton} onPress={openOrdersBottomSheet}>
+      <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(modals)/orders')} activeOpacity={0.85}>
         <MaterialCommunityIcons name="order-bool-descending" size={24} color={colors.primary} />
       </TouchableOpacity>
     </View>

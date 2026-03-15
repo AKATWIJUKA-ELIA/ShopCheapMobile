@@ -13,7 +13,8 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity
 // Add secure random fallback for bcryptjs in React Native
 bcrypt.setRandomFallback((len: number) => {
   const array = new Uint8Array(len);
-  return Crypto.getRandomValues(array);
+  Crypto.getRandomValues(array);
+  return Array.from(array);
 });
 
 export default function Signup() {
@@ -33,17 +34,47 @@ export default function Signup() {
   const { setUser } = useAuthStore();
 
   const handleSignup = async () => {
-    if (!userName || !email || !password || !phone) {
+    const sanitizedUserName = userName.trim();
+    const sanitizedEmail = email.trim();
+    const sanitizedPhone = phone.trim();
+    const sanitizedPassword = password.trim();
+
+    const validateEmail = (email: string) => {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    };
+
+    if (!sanitizedUserName || !sanitizedEmail || !sanitizedPassword || !sanitizedPhone) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (sanitizedUserName.length < 3) {
+      Alert.alert('Invalid Username', 'Username must be at least 3 characters');
+      return;
+    }
+
+    if (!validateEmail(sanitizedEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    if (sanitizedPhone.length < 8 || !/^\+?\d+$/.test(sanitizedPhone)) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number');
+      return;
+    }
+
+    if (sanitizedPassword.length < 6) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters');
       return;
     }
 
     try {
       setLoading(true);
 
-      // Hash the password before sending to backend
+      // Hash the password before sending to backend (using sanitized value)
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      const hashedPassword = await bcrypt.hash(sanitizedPassword, salt);
       console.log('[Signup] Password hashed successfully');
 
       // 1. Create User
@@ -51,10 +82,10 @@ export default function Signup() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: userName,
-          email,
+          username: sanitizedUserName,
+          email: sanitizedEmail,
           passwordHash: hashedPassword, // Send hashed password
-          phoneNumber: phone,
+          phoneNumber: sanitizedPhone,
           isVerified: false,
           role: 'user',
           reset_token_expires: 0,
