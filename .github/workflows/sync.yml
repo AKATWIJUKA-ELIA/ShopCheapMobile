@@ -31,8 +31,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
         # 2) use the PAT and show what identity GitHub thinks it is (no secret leakage)
-        AUTH_HEADER=$(printf "x-access-token:%s" "$DESTPAT" | base64 -w 0)
-        curl -sS -H "Authorization: Basic $AUTH_HEADER" https://api.github.com/user | sed -n '1,40p'
+          AUTH_HEADER=$(printf "x-access-token:%s" "$DESTPAT" | base64 -w 0)
+          curl -sS -H "Authorization: Basic $AUTH_HEADER" https://api.github.com/user | sed -n '1,40p'
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
