@@ -53,6 +53,7 @@ export default function ProductModal() {
   const [product, setProduct] = useState<Product | null>(null);
   const [sellerShop, setSellerShop] = useState<Shop | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [sellerProducts, setSellerProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +120,29 @@ export default function ProductModal() {
       }
     } catch (err) {
       console.error("Error fetching related products:", err);
+    }
+  };
+  
+  const fetchSellerProducts = async (sellerId: string) => {
+    try {
+      const { GET_PRODUCTS_BY_SELLER_API_URL } = require('@/types/product');
+      const res = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${sellerId}`);
+      const data = await res.json();
+      
+      let sellerItems: Product[] = [];
+      if (Array.isArray(data)) {
+        sellerItems = data;
+      } else if (data && Array.isArray(data.products)) {
+        sellerItems = data.products;
+      } else if (data && Array.isArray(data.data)) {
+        sellerItems = data.data;
+      }
+      
+      if (sellerItems.length > 0) {
+        setSellerProducts(sellerItems.filter((p) => p._id !== productId).slice(0, 8));
+      }
+    } catch (err) {
+      console.error("Error fetching seller products:", err);
     }
   };
 
@@ -193,9 +217,9 @@ export default function ProductModal() {
         }
 
         if (fetchedProduct.product_owner_id || fetchedProduct.owner_id) {
-          fetchSellerShop(
-            fetchedProduct.product_owner_id || fetchedProduct.owner_id,
-          );
+          const ownerId = fetchedProduct.product_owner_id || fetchedProduct.owner_id;
+          fetchSellerShop(ownerId);
+          fetchSellerProducts(ownerId);
         }
         fetchReviews();
       } else {
@@ -349,7 +373,7 @@ export default function ProductModal() {
               />
             )}
           />
-          {images.length > 1 && (
+          {images.length > 1 ? (
             <View style={styles.paginationDots}>
               {images.map((_, index) => (
                 <View
@@ -363,17 +387,17 @@ export default function ProductModal() {
                 />
               ))}
             </View>
-          )}
+          ) : null}
         </View>
 
         <Text style={styles.title}>{product.product_name}</Text>
         <Text style={styles.price}>{formatPrice(product.product_price)}</Text>
 
-        {product.product_discount && product.product_discount > 0 && (
+        {product.product_discount !== undefined && product.product_discount > 0 ? (
           <Text style={styles.discount}>
             Discount: {formatPrice(product.product_discount)}
           </Text>
-        )}
+        ) : null}
 
         <View style={{ height: 8 }} />
         <Text style={styles.description}>{product.product_description}</Text>
@@ -431,50 +455,6 @@ export default function ProductModal() {
             </TouchableOpacity>
           )}
 
-          <View style={{ flexDirection: "row", gap: 15 }}>
-            {/* <View style={{ alignItems: 'center' }}>
-              <TouchableOpacity>
-                <Entypo name='eye' size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <Text style={styles.detailValue}>{product.product_views || 0}</Text>
-            </View> */}
-
-            {/* <View style={{ alignItems: 'center' }}>
-              <TouchableOpacity disabled={isLiking} onPress={async () => {
-                if (!user) {
-                  router.push('/(auth)/login');
-                  return;
-                }
-                try {
-                  setIsLiking(true);
-                  const res = await fetch(`${API_BASE_URL}/product/like`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ productId: product._id, userId: user._id })
-                  });
-                  if (res.ok) {
-                    setLiked(!liked);
-                    fetchProductData(); // Refresh to get new like count
-                  }
-                } catch (err) {
-                  console.error("Error liking product:", err);
-                  // fallback toggle for UI even if backend fails (optional)
-                  setLiked(!liked);
-                } finally {
-                  setIsLiking(false);
-                }
-              }}>
-                <FontAwesome name={liked ? 'thumbs-up' : 'thumbs-o-up'} size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <Text style={styles.detailValue}>{product.product_likes || 0}</Text>
-            </View> */}
-
-            {/* <View style={{ alignItems: 'center' }}>
-              <TouchableOpacity onPress={() => triggerShare(`Check out ${product.product_name} on ShopCheap!`, 'https://www.shopcheapug.com/home')}>
-                <Entypo name='share' size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <Text style={styles.detailValue}>Share</Text>
-            </View> */}
 
             <View style={{ alignItems: "center" }}>
               <TouchableOpacity
@@ -484,6 +464,7 @@ export default function ProductModal() {
                     router.push("/(auth)/login");
                     return;
                   }
+                  if (!product) return;
                   try {
                     setIsBookmarking(true);
                     await toggleWishlist(product);
@@ -496,11 +477,9 @@ export default function ProductModal() {
               >
                 <FontAwesome
                   name={(() => {
+                    if (!product) return "heart-o";
                     const isBookmarked = wishlistIds.includes(product._id);
-                    console.log(
-                      `[ProductDetail] Bookmark Check: ID=${product._id}, IsInWishlist=${isBookmarked}, WishlistCount=${wishlistIds.length}`,
-                    );
-                    return isBookmarked ? "bookmark" : "bookmark-o";
+                    return isBookmarked ? "heart" : "heart-o";
                   })()}
                   size={24}
                   color={colors.primary}
@@ -509,66 +488,88 @@ export default function ProductModal() {
               <Text style={styles.detailValue}>Bookmark</Text>
             </View>
           </View>
-        </View>
 
-        {/* Seller Info */}
+        {/* Seller Info Section */}
         <View style={styles.sellerSection}>
-          <Text style={styles.sectionTitle}>Seller Details</Text>
-          <View style={[styles.detailsRow]}>
-            <Text style={styles.detailLabel}>Seller:</Text>
-            <Text style={styles.detailValue}>
-              {product.seller.username || product.product_owner_id}
-            </Text>
-          </View>
-          <View style={[styles.detailsRow]}>
-            <Text style={styles.detailLabel}>Contact:</Text>
-            <Text style={styles.detailValue}>
-              {product.seller.phoneNumber || "N/A"}
-            </Text>
-          </View>
-          <View style={[styles.detailsRow]}>
-            <Text style={styles.detailLabel}>Email:</Text>
-            <Text style={styles.detailValue}>
-              {product.seller.email || "N/A"}
-            </Text>
-          </View>
-          {sellerShop?.phone && (
-            <TouchableOpacity
-              style={styles.detailsRow}
-              onPress={() => Linking.openURL(`tel:${sellerShop.phone}`)}
-            >
-              <Ionicons
-                name="call-outline"
-                size={14}
-                color={colors.primary}
-                style={{ marginRight: 8 }}
+          <View style={styles.sellerHeader}>
+            <View style={styles.sellerInfoMain}>
+              <Image 
+                source={{ uri: sellerShop?.profile_image || 'https://picsum.photos/100' }} 
+                style={styles.sellerAvatar}
               />
-              <Text style={[styles.detailValue, { color: colors.primary }]}>
-                {sellerShop.phone}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {sellerShop?.email && (
-            <TouchableOpacity
-              style={styles.detailsRow}
-              onPress={() => Linking.openURL(`mailto:${sellerShop.email}`)}
+              <View style={styles.sellerTextInfo}>
+                <Text style={styles.sellerName}>{sellerShop?.shop_name || product.seller.username}</Text>
+                <View style={styles.sellerBadgeRow}>
+                  {sellerShop?.is_verified ? (
+                    <View style={styles.verifiedBadge}>
+                      <Ionicons name="checkmark-circle" size={12} color="#166534" />
+                      <Text style={styles.verifiedText}>Verified</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.visitShopBtn}
+              onPress={() => sellerShop?._id && router.push({ pathname: '/Screens/[id]', params: { id: sellerShop._id } })}
             >
-              <Ionicons
-                name="mail-outline"
-                size={14}
-                color={colors.primary}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={[styles.detailValue, { color: colors.primary }]}>
-                {sellerShop.email}
-              </Text>
+              <Text style={styles.visitShopText}>Visit Shop</Text>
             </TouchableOpacity>
-          )}
+          </View>
+
+          <View style={styles.sellerContactDetails}>
+            <View style={styles.contactDetailItem}>
+              <Ionicons name="person-outline" size={16} color={colors.grayish} />
+              <Text style={styles.contactDetailText}>{product.seller.username}</Text>
+            </View>
+            <View style={styles.contactDetailItem}>
+              <Ionicons name="mail-outline" size={16} color={colors.grayish} />
+              <Text style={styles.contactDetailText}>{product.seller.email || 'N/A'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.sellerActionRow}>
+            <TouchableOpacity 
+              style={styles.chatSellerBtn}
+              onPress={() => {
+                if (!user) {
+                  router.push('/(auth)/login');
+                  return;
+                }
+                router.push({ 
+                  pathname: '/Screens/chat', 
+                  params: { 
+                    sellerId: product.seller._id,
+                    shopName: sellerShop?.shop_name || product.seller.username,
+                    shopImage: sellerShop?.profile_image
+                  } 
+                });
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses" size={20} color="#000" />
+              <Text style={styles.chatSellerText}>Chat with Seller</Text>
+            </TouchableOpacity>
+
+            <View style={styles.contactIconsRow}>
+              <TouchableOpacity 
+                style={styles.contactIconBtn}
+                onPress={() => product.seller.phoneNumber ? Linking.openURL(`tel:${product.seller.phoneNumber}`) : null}
+              >
+                <Ionicons name="call" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.contactIconBtn}
+                onPress={() => product.seller.phoneNumber ? Linking.openURL(`whatsapp://send?phone=${product.seller.phoneNumber}`) : null}
+              >
+                <FontAwesome name="whatsapp" size={22} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <View style={{ marginTop: 24 }}>
+        {relatedProducts.length > 0 ? (
+          <View style={{ marginTop: 32 }}>
             <Text style={styles.sectionTitle}>Related Products</Text>
             <ScrollView
               horizontal
@@ -578,7 +579,7 @@ export default function ProductModal() {
               {relatedProducts.map((p) => (
                 <TouchableOpacity
                   key={p._id}
-                  style={{ marginRight: 15, width: 140 }}
+                  style={styles.relatedCard}
                   onPress={() =>
                     router.push({
                       pathname: "/(modals)/product",
@@ -592,38 +593,68 @@ export default function ProductModal() {
                         ? p.product_image[0]
                         : p.product_image,
                     }}
-                    style={{
-                      width: 140,
-                      height: 140,
-                      borderRadius: 8,
-                      backgroundColor: "#eee",
-                    }}
+                    style={styles.relatedImage}
                   />
-                  <Text
-                    style={{
-                      color: colors.text,
-                      fontSize: 13,
-                      fontWeight: "600",
-                      marginTop: 4,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {p.product_name}
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontSize: 12,
-                      fontWeight: "700",
-                    }}
-                  >
-                    {formatPrice(p.product_price)}
-                  </Text>
+                  <View style={styles.relatedInfo}>
+                    <Text style={styles.relatedName} numberOfLines={1}>
+                      {p.product_name}
+                    </Text>
+                    <Text style={styles.relatedPrice}>
+                      {formatPrice(p.product_price)}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
-        )}
+        ) : null}
+
+        {/* Seller's Other Products */}
+        {sellerProducts.length > 0 ? (
+          <View style={{ marginTop: 32 }}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>More from this Seller</Text>
+              <TouchableOpacity onPress={() => sellerShop?._id && router.push({ pathname: '/Screens/[id]', params: { id: sellerShop._id } })}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 12 }}
+            >
+              {sellerProducts.map((p) => (
+                <TouchableOpacity
+                  key={p._id}
+                  style={styles.relatedCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(modals)/product",
+                      params: { id: p._id },
+                    })
+                  }
+                >
+                  <Image
+                    source={{
+                      uri: Array.isArray(p.product_image)
+                        ? p.product_image[0]
+                        : p.product_image,
+                    }}
+                    style={styles.relatedImage}
+                  />
+                  <View style={styles.relatedInfo}>
+                    <Text style={styles.relatedName} numberOfLines={1}>
+                      {p.product_name}
+                    </Text>
+                    <Text style={styles.relatedPrice}>
+                      {formatPrice(p.product_price)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
         {/* Reviews Section */}
         <View style={{ marginTop: 24, marginBottom: 40 }}>
@@ -631,7 +662,7 @@ export default function ProductModal() {
             Customer Reviews ({reviews.length})
           </Text>
 
-          {user && (
+          {user ? (
             <View style={styles.reviewForm}>
               <Text
                 style={{
@@ -689,7 +720,7 @@ export default function ProductModal() {
                 )}
               </TouchableOpacity>
             </View>
-          )}
+          ) : null}
 
           {reviews.length === 0 ? (
             <Text style={{ color: colors.grayish, marginTop: 16 }}>
@@ -756,8 +787,8 @@ const appStyles = (colors: any) =>
       marginTop: 12,
     },
     price: {
-      color: colors.primary,
-      fontSize: 22,
+      color: colors.green,
+      fontSize: 16,
       fontWeight: "800",
       marginTop: 4,
     },
@@ -833,9 +864,158 @@ const appStyles = (colors: any) =>
     sellerSection: {
       marginTop: 24,
       padding: 16,
+      backgroundColor: colors.card,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.gray + "33",
-      borderRadius: 8,
+      borderColor: colors.gray + "20",
+    },
+    sellerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    sellerInfoMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    sellerAvatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: colors.gray + "20",
+    },
+    sellerTextInfo: {
+      flex: 1,
+    },
+    sellerName: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    sellerBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 2,
+    },
+    verifiedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#dcfce7',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      gap: 2,
+    },
+    verifiedText: {
+      color: '#166534',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    visitShopBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    visitShopText: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    sellerContactDetails: {
+      marginTop: 16,
+      gap: 8,
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: colors.gray + "10",
+    },
+    contactDetailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    contactDetailText: {
+      color: colors.grayish,
+      fontSize: 14,
+    },
+    sellerActionRow: {
+      flexDirection: 'row',
+      marginTop: 20,
+      gap: 12,
+      alignItems: 'center',
+    },
+    chatSellerBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      borderRadius: 12,
+      gap: 8,
+    },
+    chatSellerText: {
+      color: '#000',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    contactIconsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    contactIconBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.gray + "20",
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    viewAllText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    relatedCard: {
+      marginRight: 16,
+      width: 150,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.gray + "10",
+    },
+    relatedImage: {
+      width: 150,
+      height: 150,
+      backgroundColor: colors.gray + "10",
+    },
+    relatedInfo: {
+      padding: 8,
+    },
+    relatedName: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    relatedPrice: {
+      color: colors.green,
+      fontSize: 12,
+      fontWeight: "700",
+      marginTop: 2,
     },
     reviewForm: {
       marginTop: 20,

@@ -251,11 +251,11 @@ export default function OrdersModal() {
             </TouchableOpacity>
             <View style={{ paddingVertical: 12 }}>
               <Text style={styles.headerTitle}>Order Details</Text>
-              {selectedOrder && (
+              {selectedOrder ? (
                 <Text style={styles.orderIdText}>
                   #{selectedOrder._id.slice(-8).toUpperCase()}
                 </Text>
-              )}
+              ) : null}
             </View>
           </View>
           
@@ -313,14 +313,14 @@ export default function OrdersModal() {
                 </View>
               </View>
 
-              {selectedOrder.specialInstructions && (
+              {selectedOrder.specialInstructions ? (
                 <View style={styles.detailsSection}>
                   <Text style={styles.sectionTitle}>Special Instructions</Text>
                   <Text style={styles.instructionsText}>
                     {selectedOrder.specialInstructions}
                   </Text>
                 </View>
-              )}
+              ) : null}
 
               {/* Seller Details Section */}
               <View style={styles.detailsSection}>
@@ -336,18 +336,18 @@ export default function OrdersModal() {
                         <Text style={styles.sellerName}>{sellerShop.shop_name}</Text>
                         <Text style={styles.sellerSlogan}>{sellerShop.slogan || "Trusted Seller"}</Text>
                         <View style={{ marginTop: 4 }}>
-                          {sellerShop.phone && (
+                          {sellerShop.phone ? (
                             <Text style={styles.sellerDetailText}>Tel: {sellerShop.phone}</Text>
-                          )}
-                          {sellerShop.email && (
+                          ) : null}
+                          {sellerShop.email ? (
                             <Text style={styles.sellerDetailText}>Email: {sellerShop.email}</Text>
-                          )}
+                          ) : null}
                         </View>
                       </View>
                     </View>
                     
                     <View style={styles.sellerActions}>
-                      {sellerShop.phone && (
+                      {sellerShop.phone ? (
                         <TouchableOpacity 
                           style={[styles.actionButton, { backgroundColor: colors.green + "15" }]}
                           onPress={() => Linking.openURL(`tel:${sellerShop.phone}`)}
@@ -355,9 +355,9 @@ export default function OrdersModal() {
                           <Ionicons name="call" size={18} color={colors.green} />
                           <Text style={[styles.actionText, { color: colors.green }]}>Call Seller</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                       
-                      {sellerShop.email && (
+                      {sellerShop.email ? (
                         <TouchableOpacity 
                           style={[styles.actionButton, { backgroundColor: colors.primary + "15" }]}
                           onPress={() => Linking.openURL(`mailto:${sellerShop.email}`)}
@@ -365,7 +365,7 @@ export default function OrdersModal() {
                           <Ionicons name="mail" size={18} color={colors.primary} />
                           <Text style={[styles.actionText, { color: colors.primary }]}>Email</Text>
                         </TouchableOpacity>
-                      )}
+                      ) : null}
                     </View>
                   </View>
                 ) : (

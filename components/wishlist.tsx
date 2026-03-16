@@ -40,7 +40,7 @@ const Wishlist = () => {
         <View style={{padding:10}}>
           <Text style={{color:Colors.light}}>Product Name</Text>
           <Text style={{color:Colors.gray}}>Product Details</Text>
-          <Text style={{color:Colors.gray}}>Product Price</Text>
+          <Text style={{color:Colors.green}}>Product Price</Text>
         </View>
 
         <View style={{padding:5}}>

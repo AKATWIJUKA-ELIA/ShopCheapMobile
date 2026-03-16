@@ -4,15 +4,7 @@ import { formatPrice, Product } from "@/types/product";
 import { Feather, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import {ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 
 export default function BookmarksPage() {
   const { colors } = useTheme();
@@ -83,7 +75,7 @@ export default function BookmarksPage() {
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <FontAwesome name="bookmark" size={20} color={colors.primary} />
+              <FontAwesome name="heart" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -215,7 +207,7 @@ const appStyles = (colors: any) =>
       alignItems: "center",
     },
     priceText: {
-      color: colors.primary,
+      color: colors.green,
       fontSize: 16,
       fontWeight: "800",
     },

@@ -131,7 +131,7 @@ const appStyles = (colors: any) =>
     },
     price: {
       color: colors.green,
-      fontSize: 15,
+      fontSize: 13,
       fontWeight: "bold",
       marginBottom: 2,
     },

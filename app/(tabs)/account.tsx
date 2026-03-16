@@ -157,11 +157,11 @@ const Account = () => {
 
             <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={() => router.push('/Screens/bookmarks')}>
               <View style={styles.itemLeft}>
-                <Feather name='bookmark' size={20} color={colors.text} />
-                <Text style={styles.itemLabel}>Bookmarks</Text>
+                <Feather name='heart' size={20} color={colors.text} />
+                <Text style={styles.itemLabel}>Wishlist</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {wishlistIds.length > 0 && (
+                {wishlistIds.length > 0 ? (
                   <View style={{
                     backgroundColor: colors.primary + '20',
                     paddingHorizontal: 8,
@@ -172,7 +172,7 @@ const Account = () => {
                   }}>
                     <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{wishlistIds.length}</Text>
                   </View>
-                )}
+                ) : null}
                 <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
               </View>
             </TouchableOpacity>

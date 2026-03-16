@@ -267,7 +267,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   },
   itemPrice: {
     color: colors.primary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     marginTop: 4,
     marginBottom: 8,
@@ -324,8 +324,8 @@ const appStyles = (colors: any) => StyleSheet.create({
     fontWeight: '700'
   },
   totalValue: {
-    color: Colors.primary,
-    fontSize: 18,
+    color: Colors.green,
+    fontSize: 15,
     fontWeight: '800'
   },
   subtitle: {
