@@ -48,7 +48,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <Animated.View
           entering={ZoomIn.duration(300).springify()}
           exiting={ZoomOut.duration(200)}
-          style={[styles.card, { backgroundColor: colors.graybackground || '#1E1E1E' }]}
+          style={[styles.card, { backgroundColor: colors.background || '#1E1E1E' }]}
         >
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.message, { color: colors.grayish || '#A0A0A0' }]}>{message}</Text>
