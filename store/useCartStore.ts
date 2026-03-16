@@ -405,27 +405,32 @@ export const useCartStore = create<CartState>()(
                 if (!user) return;
 
                 let url = '';
+                let method = 'POST';
                 let body: any = { user_id: user._id, product_Id: productId };
 
                 switch (action) {
                     case 'add':
                         url = CREATE_CART_API_URL;
+                        method = 'POST';
                         body = { CartItem: { product_id: productId, quantity, cart_Owner_id: user._id } };
                         break;
                     case 'increase':
                         url = INCREASE_CART_API_URL;
+                        method = 'POST';
                         break;
                     case 'reduce':
                         url = REDUCE_CART_API_URL;
+                        method = 'POST';
                         break;
                     case 'delete':
                         url = DELETE_CART_API_URL;
+                        method = 'DELETE';
                         break;
                 }
 
                 try {
                     await fetch(url, {
-                        method: 'POST',
+                        method,
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)
                     });
