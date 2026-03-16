@@ -7,6 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import { Feather, FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from '@react-native-community/blur';
 import { Link, useRouter } from 'expo-router';
@@ -23,6 +24,9 @@ const Account = () => {
 
   const { user, isAuthenticated, logout } = useAuthStore();
   const { clearCart, wishlistIds, fetchBookmarks } = useCartStore();
+  const { notifications } = useNotificationStore();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -192,7 +196,21 @@ const Account = () => {
               <Ionicons name='notifications-outline' size={20} color={colors.text} />
               <Text style={styles.itemLabel}>Notifications</Text>
             </View>
-            <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {unreadCount > 0 && (
+                <View style={{
+                  backgroundColor: 'red',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 12,
+                  minWidth: 24,
+                  alignItems: 'center'
+                }}>
+                  <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>{unreadCount}</Text>
+                </View>
+              )}
+              <Ionicons name='chevron-forward' size={18} color={colors.grayish} />
+            </View>
           </TouchableOpacity>
 
           {/* <TouchableOpacity style={styles.item} activeOpacity={0.8} onPress={openSettingsPopUp}>
