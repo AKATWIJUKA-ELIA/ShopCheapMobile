@@ -133,15 +133,14 @@ if (session.userId !== args.user_id) {
 
 ### 🟡 Medium Priority Issues
 
-#### 7. **Inconsistent HTTP Methods**
+#### 7. Inconsistent HTTP Methods
 **Current State:** 
-- `/delete-cart` uses POST instead of DELETE
-- `/increase-cart`, `/reduce-cart` use POST instead of PATCH
+- Endpoints have been updated to follow RESTful conventions.
 
-**Recommendation:** Follow RESTful conventions:
-- DELETE for deletions
-- PATCH for partial updates
-- PUT for full replacements
+**Resolved:**
+- `DELETE /cart` used for deletions
+- `POST /cart/increase`, `POST /cart/reduce` used for quantity updates
+- `POST /cart` used for creation
 
 #### 8. **Missing CORS Headers**
 **Current State:** No CORS headers configured for cross-origin requests.
@@ -197,7 +196,7 @@ Consider adding audit logging for security-sensitive operations.
 
 ### Authentication & Users
 
-#### POST `/create-user`
+#### POST `/users`
 Create a new user account.
 
 **Request Body:**
@@ -242,7 +241,7 @@ Create a new user account.
 
 ---
 
-#### POST `/auth`
+#### POST `/users/auth`
 Authenticate a user with email and password.
 
 **Request Body:**
@@ -375,7 +374,7 @@ Get all users in the system.
 
 ---
 
-#### PUT `/update-user`
+#### PATCH `/users`
 Update user information.
 
 **Request Body:**
@@ -754,7 +753,7 @@ Get a shop by owner ID.
 
 ### Cart
 
-#### POST `/create-cart`
+#### POST `/cart`
 Add an item to the cart.
 
 **Request Body:**
@@ -814,7 +813,7 @@ Get all items in a user's cart.
 
 ---
 
-#### POST `/increase-cart`
+#### POST `/cart/increase`
 Increase quantity of a cart item by 1.
 
 **Request Body:**
@@ -842,7 +841,7 @@ Increase quantity of a cart item by 1.
 
 ---
 
-#### POST `/reduce-cart`
+#### POST `/cart/reduce`
 Decrease quantity of a cart item by 1 (removes if quantity reaches 0).
 
 **Request Body:**
@@ -860,11 +859,17 @@ Decrease quantity of a cart item by 1 (removes if quantity reaches 0).
   "success": true,
   "message": "success"
 }
+
+// Not found (400)
+{
+  "success": false,
+  "message": "Cart product not found"
+}
 ```
 
 ---
 
-#### POST `/delete-cart`
+#### DELETE `/cart`
 Remove an item from the cart completely.
 
 **Request Body:**
@@ -1113,12 +1118,12 @@ All error responses follow this general format:
 
 | Method | Path | Auth Required | Description |
 |--------|------|---------------|-------------|
-| POST | `/create-user`  Register new user |
-| POST | `/auth`  Login |
-| GET | `/user` | ⚠️ Should be | Get user by ID |
-| GET | `/user/email` | ⚠️ Should be | Get user by email |
-| GET | `/users` | ⚠️ Admin only | Get all users |
-| PUT | `/update-user` | ⚠️ Owner only | Update user |
+| POST | `/users` | No | Register new user |
+| POST | `/users/auth` | No | Login |
+| GET | `/users` | ⚠️ Should be | Get user by ID |
+| GET | `/users/email` | ⚠️ Should be | Get user by email |
+| GET | `/users` (All) | ⚠️ Admin only | Get all users |
+| PATCH | `/users` | ⚠️ Owner only | Update user |
 | POST | `/seller/register` | ⚠️ Yes | Apply as seller |
 | GET | `/products`  Get all products |
 | GET | `/products/approved`  Get approved products |
@@ -1130,11 +1135,11 @@ All error responses follow this general format:
 | GET | `/shops`  Get all shops |
 | GET | `/shop/name`  Get shop by name |
 | GET | `/shop/owner`  Get shop by owner |
-| POST | `/create-cart` | ⚠️ Yes | Add to cart |
+| POST | `/cart` | ⚠️ Yes | Add to cart |
 | GET | `/cart` | ⚠️ Owner only | Get cart |
-| POST | `/increase-cart` | ⚠️ Owner only | Increase quantity |
-| POST | `/reduce-cart` | ⚠️ Owner only | Decrease quantity |
-| POST | `/delete-cart` | ⚠️ Owner only | Remove from cart |
+| POST | `/cart/increase` | ⚠️ Owner only | Increase quantity |
+| POST | `/cart/reduce` | ⚠️ Owner only | Decrease quantity |
+| DELETE | `/cart` | ⚠️ Owner only | Remove from cart |
 | GET | `/orders/seller` | ⚠️ Seller only | Get seller orders |
 | POST | `/create-review` | ⚠️ Yes | Create review |
 | GET | `/review`  Get product reviews |
@@ -1152,3 +1157,4 @@ All error responses follow this general format:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2026-01-01 | Initial documentation |
+| 1.1.0 | 2026-03-16 | Updated Cart and User APIs to follow RESTful conventions (unified `/users` and `/cart` paths) |
