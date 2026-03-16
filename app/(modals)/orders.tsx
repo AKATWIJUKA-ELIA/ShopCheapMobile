@@ -7,6 +7,7 @@ import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
 export default function OrdersModal() {
   const { colors } = useTheme();
@@ -81,16 +82,20 @@ export default function OrdersModal() {
       case "completed":
       case "delivered":
         return colors.green;
+      case "out-for-delivery":
+        return '#a855f7';
+      case "confirmed":
+        return '#3b82f6';
       case "pending":
         return "#f59e0b";
       case "cancelled":
-        return "#ef4444";
+        return "red";
       default:
         return colors.primary;
     }
   };
 
-  const renderOrder = ({ item }: { item: Order }) => (
+  const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity
       style={[
         styles.orderCard,
@@ -117,9 +122,14 @@ export default function OrdersModal() {
         />
         <View style={styles.orderInfo}>
           <View style={styles.orderHeader}>
-            <Text style={styles.orderId}>
-              Order #{item._id.slice(-6).toUpperCase()}
-            </Text>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.productName} numberOfLines={1}>
+                {item.product?.product_name || "Unknown Product"}
+              </Text>
+              <Text style={styles.orderId}>
+                #{item._id.slice(-6).toUpperCase()}
+              </Text>
+            </View>
             <View
               style={[
                 styles.statusBadge,
@@ -151,6 +161,39 @@ export default function OrdersModal() {
     </TouchableOpacity>
   );
 
+  const OrderList = ({ data }: { data: Order[] }) => (
+    <FlatList
+      data={data}
+      keyExtractor={(item) => item._id}
+      renderItem={renderOrderItem}
+      ListEmptyComponent={
+        loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="receipt-outline"
+              size={48}
+              color={colors.grayish}
+            />
+            <Text style={styles.emptyTitle}>No Orders Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              No orders found in this category.
+            </Text>
+          </View>
+        )
+      }
+      contentContainerStyle={{ paddingBottom: 60, paddingHorizontal: 16, paddingTop: 16 }}
+      ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+      showsVerticalScrollIndicator={false}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    />
+  );
+
+  const Tab = useMemo(() => createMaterialTopTabNavigator(), []);
+
   return (
     <View style={styles.flexContainer}>
       <Animated.View style={[styles.horizontalWrapper, animatedStyle]}>
@@ -162,34 +205,37 @@ export default function OrdersModal() {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>My Orders</Text>
           </View>
-          <FlatList
-            data={orders}
-            keyExtractor={(item) => item._id}
-            renderItem={renderOrder}
-            ListEmptyComponent={
-              loading ? (
-                <View style={styles.center}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons
-                    name="receipt-outline"
-                    size={48}
-                    color={colors.grayish}
-                  />
-                  <Text style={styles.emptyTitle}>No Orders Yet</Text>
-                  <Text style={styles.emptySubtitle}>
-                    You haven't made any purchases with this account.
-                  </Text>
-                </View>
-              )
-            }
-            contentContainerStyle={{ paddingBottom: 60, paddingHorizontal: 16, paddingTop: 16 }}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-            showsVerticalScrollIndicator={true}
-            style={{ flex: 1 }}
-          />
+          
+          <Tab.Navigator
+            screenOptions={{
+              tabBarActiveTintColor: colors.primary,
+              tabBarInactiveTintColor: colors.grayish,
+              tabBarIndicatorStyle: { backgroundColor: colors.primary },
+              tabBarStyle: { backgroundColor: colors.background },
+              tabBarLabelStyle: { fontSize: 13, fontWeight: '700', textTransform: 'capitalize' },
+              tabBarPressColor: colors.primary + '10',
+            }}
+          >
+            <Tab.Screen name="All">
+              {() => <OrderList data={orders} />}
+            </Tab.Screen>
+            <Tab.Screen name="Active">
+              {() => {
+                const activeOrders = orders.filter(o => 
+                  ["confirmed", "out-for-delivery", "pending"].includes(o.order_status.toLowerCase())
+                );
+                return <OrderList data={activeOrders} />;
+              }}
+            </Tab.Screen>
+            <Tab.Screen name="Closed">
+              {() => {
+                const closedOrders = orders.filter(o => 
+                  ["cancelled", "delivered", "completed"].includes(o.order_status.toLowerCase())
+                );
+                return <OrderList data={closedOrders} />;
+              }}
+            </Tab.Screen>
+          </Tab.Navigator>
         </View>
 
         {/* Details Page */}
@@ -217,7 +263,7 @@ export default function OrdersModal() {
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
-              showsVerticalScrollIndicator={true}
+              showsVerticalScrollIndicator={false}
             >
               <View style={styles.detailsSection}>
                 <Text style={styles.sectionTitle}>Status</Text>
@@ -364,6 +410,7 @@ const appStyles = (colors: any, width: number) =>
     page: {
       width: width,
       height: "100%",
+      backgroundColor: colors.background,
     },
     flexContainer: {
       flex: 1,
@@ -377,6 +424,7 @@ const appStyles = (colors: any, width: number) =>
       alignItems: "center",
       flexDirection: 'row',
       justifyContent: 'center',
+      backgroundColor: colors.background,
     },
     closeButton: {
       position: 'absolute',
@@ -394,7 +442,6 @@ const appStyles = (colors: any, width: number) =>
       borderWidth: 0,
       borderColor: colors.grayish + "20",
       borderLeftWidth: 5,
-      marginBottom: 12,
       elevation: 2,
       shadowColor: '#000',
       shadowOpacity: 0.05,
@@ -423,6 +470,12 @@ const appStyles = (colors: any, width: number) =>
       marginBottom: 4,
     },
     orderId: {
+      fontSize: 10,
+      fontWeight: "500",
+      color: colors.grayish,
+      marginTop: 1,
+    },
+    productName: {
       fontSize: 14,
       fontWeight: "700",
       color: colors.text,
@@ -457,6 +510,7 @@ const appStyles = (colors: any, width: number) =>
       alignItems: "center",
       justifyContent: "center",
       padding: 40,
+      backgroundColor:colors.background
     },
     emptyTitle: {
       fontSize: 18,
@@ -543,7 +597,7 @@ const appStyles = (colors: any, width: number) =>
     productPriceDetails: {
       fontSize: 16,
       fontWeight: "700",
-      color: colors.primary,
+      color: colors.green,
     },
     instructionsText: {
       fontSize: 14,
@@ -572,7 +626,7 @@ const appStyles = (colors: any, width: number) =>
     totalValueText: {
       fontSize: 20,
       fontWeight: "800",
-      color: colors.primary,
+      color: colors.green,
     },
     footerDateText: {
       fontSize: 12,

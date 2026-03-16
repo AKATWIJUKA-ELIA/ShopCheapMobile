@@ -22,7 +22,7 @@ export default function Notifications() {
     if (user?._id) {
       try {
         await fetch(UPDATE_USER_API_URL, {
-          method: 'POST',
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user._id,
