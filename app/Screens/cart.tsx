@@ -9,12 +9,14 @@ import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import ConfirmDialog from '@/components/Modals/ConfirmDialog'
 
 const Cart = () => {
   const { items, total, incrementItem, decrementItem, removeFromCart, clearCart, fetchCart } = useCartStore()
   const { user } = useAuthStore()
   const { openOrdersBottomSheet } = useBottomSheetStore()
   const [loading, setLoading] = useState(false)
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const isEmpty = items.length === 0;
   const router = useRouter();
 
@@ -57,14 +59,12 @@ const Cart = () => {
   };
 
   const confirmClearCart = () => {
-    Alert.alert(
-      "Clear Cart",
-      "Are you sure you want to remove all items from your cart?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Clear", style: "destructive", onPress: clearCart }
-      ]
-    );
+    setIsConfirmVisible(true);
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+    setIsConfirmVisible(false);
   };
 
   const { colors, toggleTheme } = useTheme();
@@ -213,6 +213,16 @@ const Cart = () => {
         color={Colors.primary}
         onLongPress={toggleTheme}
       /> */}
+      
+      <ConfirmDialog
+        visible={isConfirmVisible}
+        title="Clear Cart"
+        message="Are you sure you want to remove all items from your cart?"
+        onConfirm={handleClearCart}
+        onCancel={() => setIsConfirmVisible(false)}
+        confirmText="Clear"
+        isDestructive={true}
+      />
     </View>
   )
 }
@@ -319,7 +329,7 @@ const appStyles = (colors: any) => StyleSheet.create({
     marginBottom: 30
   },
   totalLabel: {
-    color: colors.text,
+    color: colors.green,
     fontSize: 16,
     fontWeight: '700'
   },
