@@ -1,7 +1,7 @@
 import RenderItem from '@/components/RenderItem'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
-import { Product, PRODUCTS_API_URL } from '@/types/product'
+import { AUTH_TOKEN, Product, PRODUCTS_API_URL } from '@/types/product'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -22,7 +22,13 @@ export default function CategoryModal() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(PRODUCTS_API_URL);
+      const response = await fetch(PRODUCTS_API_URL,{
+        headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                },
+               method: "GET",
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch products');

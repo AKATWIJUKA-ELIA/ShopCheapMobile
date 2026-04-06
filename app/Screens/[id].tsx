@@ -1,6 +1,6 @@
 import ErrorView from '@/components/ui/ErrorView';
 import { useTheme } from '@/contexts/ThemeContext';
-import { GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_API_URL, GET_USER_API_URL, Product, Shop, formatPrice } from '@/types/product';
+import { AUTH_TOKEN, GET_PRODUCTS_BY_SELLER_API_URL, GET_SHOPS_BY__API_URL, GET_USER_API_URL, Product, Shop, formatPrice } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -26,20 +26,31 @@ export default function ShopDetailsScreen() {
       setError(null);
 
       // 1. Fetch all shops to find this one (since there's no single shop fetch by ID)
-      const shopRes = await fetch(GET_SHOPS_API_URL);
+      const shopRes = await fetch(`${GET_SHOPS_BY__API_URL}?shopId=${id}`,
+        {
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                }
+        }
+      );
       if (!shopRes.ok) throw new Error('Failed to fetch shops');
-      const allShops: Shop[] = await shopRes.json();
-      const shopData = allShops.find(s => s._id === id);
-
+      const shopData = await shopRes.json();
+//       console.log("Fetched shop data:", shopData);
       if (!shopData) {
         throw new Error('Shop not found');
       }
-      setShop(shopData);
+      setShop(shopData.data);
 
       // 2. Fetch owner details
-      if (shopData.owner_id) {
+      if (shopData.data.owner_id) {
         try {
-          const userRes = await fetch(`${GET_USER_API_URL}?id=${shopData.owner_id}`);
+          const userRes = await fetch(`${GET_USER_API_URL}?id=${shopData.data.owner_id}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              "X-Auth-Token": AUTH_TOKEN,
+            }
+          });
           if (userRes.ok) {
             const userData = await userRes.json();
             setSellerUser(userData);
@@ -50,10 +61,16 @@ export default function ShopDetailsScreen() {
       }
 
       // 3. Fetch products for this shop/seller
-      const prodRes = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${shopData.owner_id}`);
+      const prodRes = await fetch(`${GET_PRODUCTS_BY_SELLER_API_URL}?sellerId=${shopData.data.owner_id}`,{
+        headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                },
+               method: "GET",
+      });
       if (!prodRes.ok) throw new Error('Failed to fetch products');
       const prodData = await prodRes.json();
-      setProducts(Array.isArray(prodData) ? prodData : []);
+      setProducts(Array.isArray(prodData.data.page) ? prodData.data.page : []);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

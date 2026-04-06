@@ -9,7 +9,14 @@ import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { banners as bannerImages } from "@/constants/data";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CATEGORIES_API_URL, Category, GET_SHOPS_API_URL, Product, PRODUCTS_API_URL } from "@/types/product";
+import { ShopData } from "@/types/webTypes";
+import { CATEGORIES_API_URL,
+        Category,
+        GET_SHOPS_API_URL,
+        Product,
+        PRODUCTS_API_URL,
+        AUTH_TOKEN
+} from "@/types/product";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
@@ -42,14 +49,36 @@ const Home = () => {
     try {
       setLoading(true);
       setError(null);
-
+        // console.log("base url:", PRODUCTS_API_URL);
+        // console.log("auth token:", AUTH_TOKEN);
       const [productsRes, categoriesRes, shopsRes] = await Promise.all([
-        fetch(PRODUCTS_API_URL),
-        fetch(CATEGORIES_API_URL),
-        fetch(GET_SHOPS_API_URL),
+        fetch(PRODUCTS_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN
+                },
+               method: "GET",
+        }),
+
+        fetch(CATEGORIES_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN
+                },
+               method: "GET",
+        }),
+        fetch(GET_SHOPS_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN, 
+                },
+               method: "GET",
+        }),
       ]);
 
-      if (!productsRes.ok || !categoriesRes.ok || !shopsRes.ok) {
+      if (!productsRes 
+        // || !categoriesRes.ok || !shopsRes.ok
+) {
         throw new Error("Failed to fetch data");
       }
 
@@ -58,21 +87,21 @@ const Home = () => {
         categoriesRes.json(),
         shopsRes.json(),
       ]);
-
-      setProducts(productsData.filter((item: Product) => item.approved));
-      setCategories(categoriesData);
+// console.log("categories response status:",categoriesData);
+      setProducts(productsData?.data?.page);
+      setCategories(categoriesData.data);
 
       // Extract shop banner items (cover, id, name)
-      if (Array.isArray(shopsData)) {
-        const items: BannerItem[] = shopsData
-          .map((shop) => ({
+      if (Array.isArray(shopsData.data)) {
+        const items: BannerItem[] = shopsData.data
+          .map((shop: ShopData) => ({
             id: shop._id,
             title: shop.shop_name,
             uri: Array.isArray(shop.cover_image)
               ? shop.cover_image[0]
               : shop.cover_image,
           }))
-          .filter((item) => item.uri && typeof item.uri === "string");
+          .filter((item: BannerItem) => item.uri && typeof item.uri === "string");
         setBannerItems(items);
       }
     } catch (err) {

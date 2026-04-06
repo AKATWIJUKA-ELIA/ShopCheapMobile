@@ -70,7 +70,7 @@ export interface Shop {
     };
     phone?: string;
     email?: string;
-    productCount?: number;
+    product_count?: number;
     _creationTime?: number;
 }
 
@@ -100,7 +100,8 @@ export function formatPrice(price: string | number): string {
 }
 
 // API endpoint
-export const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl || 'https://cheery-cod-687.convex.site';
+export const API_BASE_URL = Constants.expoConfig?.extra?.apiBaseUrl;
+export const AUTH_TOKEN = Constants.expoConfig?.extra?.authToken;
 export const PRODUCTS_API_URL = `${API_BASE_URL}/products`;
 export const CATEGORIES_API_URL = `${API_BASE_URL}/categories`;
 export const AUTH_API_URL = `${API_BASE_URL}/auth`;
@@ -112,17 +113,18 @@ export const CREATE_PRODUCT_API_URL = `${API_BASE_URL}/create-product`;
 export const GET_SHOP_BY_OWNER_API_URL = `${API_BASE_URL}/shop/owner`;
 export const GET_PRODUCTS_BY_SELLER_API_URL = `${API_BASE_URL}/products/seller`;
 export const GET_ORDERS_BY_SELLER_API_URL = `${API_BASE_URL}/orders/seller`;
-export const GET_PRODUCT_API_URL = `${API_BASE_URL}/product`;
+export const GET_PRODUCT_API_URL = `${API_BASE_URL}/products/id`;
 export const GET_RELATED_PRODUCTS_API_URL = `${API_BASE_URL}/products/related`;
 export const CREATE_REVIEW_API_URL = `${API_BASE_URL}/create-review`;
-export const GET_REVIEWS_API_URL = `${API_BASE_URL}/review`;
+export const GET_REVIEWS_API_URL = `${API_BASE_URL}/reviews/product`;
 export const GET_CART_API_URL = `${API_BASE_URL}/cart`;
 export const CREATE_CART_API_URL = `${API_BASE_URL}/create-cart`;
 export const INCREASE_CART_API_URL = `${API_BASE_URL}/increase-cart`;
 export const REDUCE_CART_API_URL = `${API_BASE_URL}/reduce-cart`;
 export const DELETE_CART_API_URL = `${API_BASE_URL}/delete-cart`;
 export const GET_SHOPS_API_URL = `${API_BASE_URL}/shops`;
-export const GET_USER_API_URL = `${API_BASE_URL}/user`;
+export const GET_SHOPS_BY__API_URL = `${API_BASE_URL}/shops/by`; //by?name=shopName, by?owner=ownerId, by?shopId=shopId
+export const GET_USER_API_URL = `${API_BASE_URL}/users`;
 export const GET_BOOKMARKS_API_URL = `${API_BASE_URL}/bookmarks`;
 export const ADD_BOOKMARK_API_URL = `${API_BASE_URL}/bookmarks/add`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;

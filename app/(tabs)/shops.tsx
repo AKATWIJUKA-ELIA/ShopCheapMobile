@@ -4,6 +4,7 @@ import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
+        AUTH_TOKEN,
   GET_SHOPS_API_URL,
   Product,
   PRODUCTS_API_URL,
@@ -56,34 +57,17 @@ export default function ShopsScreen() {
       setError(null);
       if (!isRefresing) setLoading(true);
 
-      const [shopsRes, productsRes] = await Promise.all([
-        fetch(GET_SHOPS_API_URL),
-        fetch(PRODUCTS_API_URL),
+      const [shopsRes] = await Promise.all([
+        fetch(GET_SHOPS_API_URL, {
+          headers: {
+            'Content-Type': 'application/json',
+            "X-Auth-Token": AUTH_TOKEN,
+          }
+        }),
       ]);
 
-      const shopsData: Shop[] = await shopsRes.json();
-      const productsData: Product[] = await productsRes.json();
-
-      if (Array.isArray(shopsData) && Array.isArray(productsData)) {
-        // Count products per seller
-        const counts: Record<string, number> = {};
-        productsData.forEach((p) => {
-          const ownerId = p.product_owner_id;
-          if (ownerId) {
-            counts[ownerId] = (counts[ownerId] || 0) + 1;
-          }
-        });
-
-        // Attach counts to shops
-        const shopsWithCounts = shopsData.map((shop) => ({
-          ...shop,
-          productCount: counts[shop.owner_id] || 0,
-        }));
-
-        setShops(shopsWithCounts);
-      } else if (Array.isArray(shopsData)) {
-        setShops(shopsData);
-      }
+      const shopsData = await shopsRes.json();
+       setShops(shopsData.data);
     } catch (error) {
       console.error("Error fetching shops:", error);
       setError("Network Error. Please check your connection.");
@@ -245,7 +229,7 @@ export default function ShopsScreen() {
 
         <View style={styles.productCount}>
           <Text style={{ color: colors.grayish, fontSize: 12 }}>
-            {item.productCount || 0} Products
+            {item.product_count || 0} Products
           </Text>
           {/* <TouchableOpacity onPress={() => {}}>
             <Ionicons name='location' size={18} color={colors.lightgray}/>
