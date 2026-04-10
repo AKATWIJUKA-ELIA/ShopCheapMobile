@@ -115,6 +115,7 @@ export const GET_PRODUCTS_BY_SELLER_API_URL = `${API_BASE_URL}/products/seller`;
 export const GET_ORDERS_BY_SELLER_API_URL = `${API_BASE_URL}/orders/seller`;
 export const GET_PRODUCT_API_URL = `${API_BASE_URL}/products/id`;
 export const GET_RELATED_PRODUCTS_API_URL = `${API_BASE_URL}/products/related`;
+export const GET_SPONSORED_PRODUCTS_API_URL = `${API_BASE_URL}/products/sponsored`;
 export const CREATE_REVIEW_API_URL = `${API_BASE_URL}/create-review`;
 export const GET_REVIEWS_API_URL = `${API_BASE_URL}/reviews/product`;
 export const GET_CART_API_URL = `${API_BASE_URL}/cart`;

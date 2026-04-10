@@ -28,7 +28,18 @@ const appStyles = (colors: any) => StyleSheet.create({
   container: {
     width: 90,
     height: 'auto',
-    padding: 8,
+    padding: 4,
+    marginRight: 8,
+    borderLeftWidth: 0.3,
+    borderRightWidth: 0.3,
+    borderTopWidth: 0.3,
+    borderBottomWidth: 0.3,
+    borderLeftColor: `red`,
+    borderRightColor: `red`,
+    borderTopColor: `red`,
+    borderBottomColor: `red`,
+    backgroundColor: '#f1dcdc',
+    borderRadius: 3,
   },
   imageWrap: {
     backgroundColor: '#111',
@@ -41,7 +52,7 @@ const appStyles = (colors: any) => StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 8
+    // borderRadius: 8
   },
   title: {
     color: colors.text,

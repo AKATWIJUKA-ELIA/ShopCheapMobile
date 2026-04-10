@@ -325,6 +325,8 @@ const appStyles = (colors: any) =>
     categoriesWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
+      backgroundColor:"#f2ebeb",
+      padding: 7,
     },
     gridWrap: {
       flexDirection: "row",
