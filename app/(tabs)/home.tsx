@@ -8,6 +8,7 @@ import FloatingButton from "@/components/ui/FloatingBtn";
 import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { banners as bannerImages } from "@/constants/data";
+import Shops from "@/components/Shops";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ShopData } from "@/types/webTypes";
 import { CATEGORIES_API_URL,
@@ -42,6 +43,7 @@ const Home = () => {
   >("default");
   const [categories, setCategories] = useState<Category[]>([]);
   const [bannerItems, setBannerItems] = useState<BannerItem[]>([]);
+  const [shopsData, setShopsData] = useState<ShopData[] >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,20 +92,7 @@ const Home = () => {
 // console.log("categories response status:",categoriesData);
       setProducts(productsData?.data?.page);
       setCategories(categoriesData.data);
-
-      // Extract shop banner items (cover, id, name)
-      if (Array.isArray(shopsData.data)) {
-        const items: BannerItem[] = shopsData.data
-          .map((shop: ShopData) => ({
-            id: shop._id,
-            title: shop.shop_name,
-            uri: Array.isArray(shop.cover_image)
-              ? shop.cover_image[0]
-              : shop.cover_image,
-          }))
-          .filter((item: BannerItem) => item.uri && typeof item.uri === "string");
-        setBannerItems(items);
-      }
+      setShopsData(shopsData.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -245,10 +234,8 @@ const Home = () => {
           columnWrapperStyle={{ justifyContent: "space-between" }}
           contentContainerStyle={{ padding: 7 }}
           ListHeaderComponent={
-            <View style={{ backgroundColor: colors.background, flex: 1 }}>
-              <Banner
-                images={bannerItems.length > 0 ? bannerItems : (banners as any)}
-              />
+            <View style={{ backgroundColor: colors.background,  }}>
+              <Banner shops={shopsData} />
               <SectionHeader
                 title="Top Categories"
                 actionText="See all"
@@ -275,6 +262,7 @@ const Home = () => {
                   />
                 ))}
               </ScrollView>
+              <Shops shops={shopsData} />
               <Recommendations />
 
               <View style={{ marginTop: 14, backgroundColor: colors.background }} />
