@@ -64,7 +64,7 @@ const Recommendations = () => {
                 if (res.ok) {
                     const data = await res.json();
                     const items = Array.isArray(data.data.page) ? data.data.page : [];
-                    console.log(`[Recommendations] Fetched sponsored products:`, data);
+                    // console.log(`[Recommendations] Fetched sponsored products:`, data);
                     related.push(...items);
 
                     setRecommendations(items);

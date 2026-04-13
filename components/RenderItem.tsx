@@ -46,12 +46,26 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
         style={styles.image}
         resizeMode="cover"
       />
+      (
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={() => addToCart(product)}
+            >
+              <Ionicons name="cart-outline" size={16} color={colors.light} />
+              {/* <Text style={styles.buttonText}>Add to Cart</Text> */}
+            </TouchableOpacity>
+          )
       <View style={styles.productInfo}>
         <Text style={styles.name} numberOfLines={2}>
           {product.product_name}
         </Text>
+        {product.product_description && (
+            <Text style={styles.description}>
+              {product.product_description}
+            </Text>
+          )}
         <Text style={styles.price}>{formatPrice(product.product_price)}</Text>
-        <View style={styles.buttonContainer}>
+        {/* <View style={styles.buttonContainer}>
           {qty > 0 ? (
             <View
               style={{
@@ -75,16 +89,8 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
                 <Text style={styles.qtyBtnText}>+</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={() => addToCart(product)}
-            >
-              <Ionicons name="cart-outline" size={16} color={colors.light} />
-              <Text style={styles.buttonText}>Add to Cart</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          ) :"" }
+        </View> */}
       </View>
     </TouchableOpacity>
   );
@@ -93,9 +99,9 @@ const RenderItem = ({ item: product }: RenderItemProps) => {
 const appStyles = (colors: any) =>
   StyleSheet.create({
     container: {
-      borderColor: colors.lightgray,
-      borderWidth: 1,
-      borderRadius: 16,
+      // borderColor: colors.lightgray,
+      // borderWidth: 1,
+      borderRadius: 1,
       height: 240,
       width: "48%",
       marginBottom: 12,
@@ -106,14 +112,14 @@ const appStyles = (colors: any) =>
         width: 0,
         height: 1,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      // shadowOpacity: 0.1,
+      // shadowRadius: 2,
+      // elevation: 2,
     },
     image: {
       width: "100%",
       height: 120,
-      borderRadius: 8,
+      borderRadius: 4,
       marginBottom: 8,
     },
     productInfo: {
@@ -123,20 +129,20 @@ const appStyles = (colors: any) =>
     name: {
       color: colors.text,
       fontSize: 14,
-      fontWeight: "600",
-      marginBottom: 4,
+      fontWeight: "100",
+      // marginBottom: 4,
     },
     price: {
-      color: colors.primary,
+      color: colors.red,
       fontSize: 15,
-      fontWeight: "bold",
+      fontWeight: "light",
       marginBottom: 2,
     },
     description: {
       color: colors.gray,
       fontSize: 12,
       lineHeight: 16,
-      marginBottom: 8,
+      // marginBottom: 8,
     },
     buttonContainer: {
       flexDirection: "row",
@@ -144,11 +150,16 @@ const appStyles = (colors: any) =>
       gap: 8,
     },
     cartButton: {
-      flex: 1,
+      position: "absolute",
+      bottom: 8,
+      right: 8,
+      zIndex: 1,
       backgroundColor: colors.primary,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 6,
+      borderColor: colors.red,
+      borderWidth: 1,
+      padding: 12,
+      // paddingHorizontal: 12,
+      borderRadius: 50,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",

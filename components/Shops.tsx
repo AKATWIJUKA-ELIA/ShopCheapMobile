@@ -61,7 +61,7 @@ const Shops = ({ shops }: shopProps) => {
 
 
     useEffect(() => {
-        console.log("shops data in Shops component:", shops);
+        // console.log("shops data in Shops component:", shops);
         if (shops.length > 0) {
             setLoading(false);
         }
