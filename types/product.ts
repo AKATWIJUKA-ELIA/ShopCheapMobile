@@ -127,7 +127,6 @@ export const REDUCE_CART_API_URL = `${API_BASE_URL}/cart/reduce`;
 export const DELETE_CART_API_URL = `${API_BASE_URL}/cart`;
 export const GET_SHOPS_API_URL = `${API_BASE_URL}/shops`;
 export const GET_SHOPS_BY__API_URL = `${API_BASE_URL}/shops/by`; //by?name=shopName, by?owner=ownerId, by?shopId=shopId
-export const GET_USER_API_URL = `${API_BASE_URL}/users`;
 export const GET_BOOKMARKS_API_URL = `${API_BASE_URL}/bookmarks`;
 export const ADD_BOOKMARK_API_URL = `${API_BASE_URL}/bookmarks/add`;
 export const GET_USER_ORDERS_API_URL = `${API_BASE_URL}/orders`;
