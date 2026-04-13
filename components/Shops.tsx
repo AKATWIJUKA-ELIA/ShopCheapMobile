@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         paddingHorizontal: 6,
         right: 1,        
-        fontSize: 11,
+        fontSize: 8,
         fontWeight: '600',
         paddingVertical: 4,
         lineHeight: 14,
