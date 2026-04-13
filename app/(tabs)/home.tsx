@@ -8,8 +8,16 @@ import FloatingButton from "@/components/ui/FloatingBtn";
 import HelpCenter, { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { banners as bannerImages } from "@/constants/data";
+import Shops from "@/components/Shops";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CATEGORIES_API_URL, Category, GET_SHOPS_API_URL, Product, PRODUCTS_API_URL } from "@/types/product";
+import { ShopData } from "@/types/webTypes";
+import { CATEGORIES_API_URL,
+        Category,
+        GET_SHOPS_API_URL,
+        Product,
+        PRODUCTS_API_URL,
+        AUTH_TOKEN
+} from "@/types/product";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, FlatList, LayoutAnimation, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
@@ -39,6 +47,7 @@ const Home = () => {
   const menuAnim = useRef(new Animated.Value(0)).current;
   const [categories, setCategories] = useState<Category[]>([]);
   const [bannerItems, setBannerItems] = useState<BannerItem[]>([]);
+  const [shopsData, setShopsData] = useState<ShopData[] >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,14 +55,36 @@ const Home = () => {
     try {
       setLoading(true);
       setError(null);
-
+        // console.log("base url:", PRODUCTS_API_URL);
+        // console.log("auth token:", AUTH_TOKEN);
       const [productsRes, categoriesRes, shopsRes] = await Promise.all([
-        fetch(PRODUCTS_API_URL),
-        fetch(CATEGORIES_API_URL),
-        fetch(GET_SHOPS_API_URL),
+        fetch(PRODUCTS_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN
+                },
+               method: "GET",
+        }),
+
+        fetch(CATEGORIES_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN
+                },
+               method: "GET",
+        }),
+        fetch(GET_SHOPS_API_URL,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN, 
+                },
+               method: "GET",
+        }),
       ]);
 
-      if (!productsRes.ok || !categoriesRes.ok || !shopsRes.ok) {
+      if (!productsRes 
+        // || !categoriesRes.ok || !shopsRes.ok
+) {
         throw new Error("Failed to fetch data");
       }
 
@@ -62,23 +93,10 @@ const Home = () => {
         categoriesRes.json(),
         shopsRes.json(),
       ]);
-
-      setProducts(productsData.filter((item: Product) => item.approved));
-      setCategories(categoriesData);
-
-      // Extract shop banner items (cover, id, name)
-      if (Array.isArray(shopsData)) {
-        const items: BannerItem[] = shopsData
-          .map((shop) => ({
-            id: shop._id,
-            title: shop.shop_name,
-            uri: Array.isArray(shop.cover_image)
-              ? shop.cover_image[0]
-              : shop.cover_image,
-          }))
-          .filter((item) => item.uri && typeof item.uri === "string");
-        setBannerItems(items);
-      }
+// console.log("categories response status:",categoriesData);
+      setProducts(productsData?.data?.page);
+      setCategories(categoriesData.data);
+      setShopsData(shopsData.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -247,10 +265,8 @@ const Home = () => {
           columnWrapperStyle={{ justifyContent: "space-between" }}
           contentContainerStyle={{ padding: 8 }}
           ListHeaderComponent={
-            <View style={{ backgroundColor: colors.background, flex: 1 }}>
-              <Banner
-                images={bannerItems.length > 0 ? bannerItems : (banners as any)}
-              />
+            <View style={{ backgroundColor: colors.background,  }}>
+              <Banner shops={shopsData} />
               <SectionHeader
                 title="Top Categories"
                 actionText={<Ionicons name="chevron-forward" size={20} color={colors.primary} />}
@@ -277,6 +293,7 @@ const Home = () => {
                   />
                 ))}
               </ScrollView>
+              <Shops shops={shopsData} />
               <Recommendations />
                 <View
                   style={{
@@ -378,6 +395,9 @@ const appStyles = (colors: any) =>
     },
     categoriesWrap: {
       flexDirection: "row",
+      flexWrap: "wrap",
+      backgroundColor:"#f2ebeb",
+      padding: 7,
     },
     gridWrap: {
       flexDirection: "row",

@@ -3,6 +3,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import {
+        AUTH_TOKEN,
   CREATE_REVIEW_API_URL,
   formatPrice,
   GET_PRODUCT_API_URL,
@@ -79,15 +80,19 @@ export default function ProductModal() {
   // Functions defined BEFORE any returns
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`${GET_REVIEWS_API_URL}?productId=${productId}`);
+      const res = await fetch(`${GET_REVIEWS_API_URL}?productId=${productId}`,
+        {
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                }
+        }
+      );
       const data = await res.json();
 
       let reviewList: Review[] = [];
-      if (Array.isArray(data)) {
-        reviewList = data;
-      } else if (data && Array.isArray(data.reviews)) {
-        reviewList = data.reviews;
-      } else if (data && Array.isArray(data.data)) {
+      if (Array.isArray(data.data)) {
+        // console.log("reviews array:", data.data);
         reviewList = data.data;
       }
 
@@ -103,6 +108,12 @@ export default function ProductModal() {
     try {
       const res = await fetch(
         `${GET_RELATED_PRODUCTS_API_URL}?category=${category}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            "X-Auth-Token": AUTH_TOKEN,
+          }
+        }
       );
       const data = await res.json();
 
@@ -148,9 +159,16 @@ export default function ProductModal() {
 
   const fetchSellerShop = async (ownerId: string) => {
     try {
-      const res = await fetch(GET_SHOPS_API_URL);
-      const data: Shop[] = await res.json();
-      const shop = data.find((s) => s.owner_id === ownerId);
+      const res = await fetch(GET_SHOPS_API_URL,
+        {
+                headers:{
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                }
+        }
+      );
+      const data = await res.json();
+      const shop: Shop  = data.data.find((s: Shop) => s.owner_id === ownerId);
       if (shop) setSellerShop(shop);
     } catch (err) {
       console.error("Error fetching seller shop:", err);
@@ -164,7 +182,13 @@ export default function ProductModal() {
       setError(null);
 
       const res = await fetch(
-        `${GET_PRODUCT_API_URL}?id=${encodeURIComponent(productId)}`,
+        `${GET_PRODUCT_API_URL}?id=${encodeURIComponent(productId)}`,{
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                },
+               method: "GET",
+        }
       );
       console.log(
         `[ProductDetail] Fetching ID: ${productId}, Status: ${res.status}`,

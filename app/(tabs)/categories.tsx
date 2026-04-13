@@ -5,7 +5,7 @@ import FloatingButton from "@/components/ui/FloatingBtn";
 import { openHelpSideBar } from "@/components/ui/help";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CATEGORIES_API_URL, Category } from "@/types/product";
+import { AUTH_TOKEN, CATEGORIES_API_URL, Category } from "@/types/product";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
@@ -24,14 +24,22 @@ const Categories = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(CATEGORIES_API_URL);
+      const response = await fetch(CATEGORIES_API_URL,
+        {
+                headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN
+                },
+               method: "GET",
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch categories");
       }
 
-      const data: Category[] = await response.json();
-      setCategories(data);
+      const data = await response.json();
+      setCategories(data.data as Category[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

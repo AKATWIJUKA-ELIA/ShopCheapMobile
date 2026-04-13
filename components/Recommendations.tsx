@@ -1,13 +1,12 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuthStore } from '@/store/useAuthStore';
-import { GET_RECOMMENDATIONS_API_URL, GET_RELATED_PRODUCTS_API_URL, Product, getFirstImage } from '@/types/product';
+import { AUTH_TOKEN, GET_RECOMMENDATIONS_API_URL, GET_RELATED_PRODUCTS_API_URL, GET_SPONSORED_PRODUCTS_API_URL, Product, getFirstImage } from '@/types/product';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import SectionHeader from './SectionHeader';
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.7;
+const CARD_SIZE = Math.min(136, width * 0.44);
 
 const RecommendationItem = ({ item, colors }: { item: Product; colors: any }) => {
     const router = useRouter();
@@ -15,94 +14,115 @@ const RecommendationItem = ({ item, colors }: { item: Product; colors: any }) =>
 
     return (
         <TouchableOpacity
-            style={[styles.itemContainer, { backgroundColor: colors.background }]}
+            style={[
+                styles.card,
+                {
+                    width: CARD_SIZE,
+                    height: CARD_SIZE,
+                    backgroundColor: "#f3eae7",
+                    borderColor: "#c32727",
+                    borderWidth: 0.3,
+                },
+            ]}
+            activeOpacity={0.85}
             onPress={() => router.push({ pathname: '/(modals)/product', params: { id: item._id } })}
-            activeOpacity={0.9}
         >
-            <Image
-                source={imageUrl ? { uri: imageUrl } : require('@/assets/images/placeholder.webp')}
-                style={styles.image}
-                resizeMode="cover"
-            />
-            <View style={[styles.infoContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                <Text style={styles.name} numberOfLines={1}>
-                    {item.product_name}
+            <View style={[styles.imageWrap, { backgroundColor: colors.background }]}>
+                <Image
+                    source={imageUrl ? { uri: imageUrl } : require('@/assets/images/placeholder.webp')}
+                    style={styles.image}
+                    resizeMode="cover"
+                />
+                <Text style={[styles.price,]} numberOfLines={2}>
+                    shs. {item.product_price}
                 </Text>
             </View>
-        </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+                {item.product_name}
+            </Text>
+            </TouchableOpacity>
     );
 };
 
 
 const Recommendations = () => {
-    const { user, isAuthenticated } = useAuthStore();
     const [recommendations, setRecommendations] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const { colors } = useTheme();
-
-    const fetchRelatedProducts = async (categories: string[]): Promise<Product[]> => {
+    const router = useRouter();
+    const fetchSponsoredProducts = async (): Promise<Product[]> => {
         const related: Product[] = [];
-        for (const category of categories) {
             try {
-                const res = await fetch(`${GET_RELATED_PRODUCTS_API_URL}?category=${encodeURIComponent(category)}`);
+                const res = await fetch(`${GET_SPONSORED_PRODUCTS_API_URL}`,{
+                     headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                    },
+                    method: "GET",
+                }
+                );
                 if (res.ok) {
                     const data = await res.json();
-                    const items = Array.isArray(data) ? data : [];
+                    const items = Array.isArray(data.data.page) ? data.data.page : [];
+                    // console.log(`[Recommendations] Fetched sponsored products:`, data);
                     related.push(...items);
+
+                    setRecommendations(items);
                 }
             } catch (err) {
-                console.log('[Recommendations] Related fetch error for', category);
+                console.log('[Recommendations] Related fetch error for', err);
             }
-        }
+        
         return related;
     };
 
     const fetchRecommendations = useCallback(async () => {
         try {
-            if (!user?._id) {
-                setLoading(false);
-                return;
-            }
+            // if (!user?._id) {
+            //     setLoading(false);
+            //     return;
+            // }
 
-            let recItems: Product[] = [];
+            let recommendedItems: Product[] = [];
             const types = ['view', 'purchase', 'bookmark', 'cart'];
             for (const type of types) {
-                const url = `${GET_RECOMMENDATIONS_API_URL}?userId=${user._id}&type=${type}`;
-                const res = await fetch(url);
+                const res = await fetch(`${GET_RECOMMENDATIONS_API_URL}?type=${type}`,{
+                    headers: {
+                        'Content-Type': 'application/json',
+                        "X-Auth-Token": AUTH_TOKEN,
+                    },
+                    method: "GET",
+                });
                 if (res.ok) {
                     const data = await res.json();
-                    recItems = Array.isArray(data) ? data : (data.products || data.recommendations || []);
-                    if (recItems.length > 0) break;
+                    console.log(`[Recommendations] Fetched ${type} recommendations:`, data);
+                    recommendedItems = Array.isArray(data) ? data : (data || []);
+                    
                 }
             }
-
-            const categories = [...new Set(recItems.map((p: Product) => p.product_category).filter(Boolean))];
-            let relatedItems: Product[] = [];
-            if (categories.length > 0) {
-                relatedItems = await fetchRelatedProducts(categories.slice(0, 3));
+            if (recommendedItems.length === 0||!recommendedItems) {
+                recommendedItems = await fetchSponsoredProducts();
             }
+            setRecommendations(recommendedItems);
 
-            const seenIds = new Set(recItems.map(p => p._id));
-            const uniqueRelated = relatedItems.filter(p => !seenIds.has(p._id));
-            const allItems = [...recItems, ...uniqueRelated];
-
-            setRecommendations(allItems);
+            // setRecommendations(allItems);
         } catch (error) {
             console.error('[Recommendations] Error:', error);
         } finally {
             setLoading(false);
         }
-    }, [user?._id]);
+    }, []);
 
     useEffect(() => {
-        if (isAuthenticated && user?._id) {
-            fetchRecommendations();
-        } else {
-            setLoading(false);
+        setLoading(true);
+        const fetchData = async () => {
+            await fetchRecommendations();
         }
-    }, [isAuthenticated, user?._id, fetchRecommendations]);
-
-    if (!isAuthenticated) return null;
+        
+        fetchData();
+        
+    }, []);
+    // if (!isAuthenticated) return null;
 
     if (loading) {
         return (
@@ -116,14 +136,15 @@ const Recommendations = () => {
 
     return (
         <View style={styles.container}>
-            <SectionHeader title="Recommended for you" />
+            <SectionHeader title="you may also like" actionText='see all' 
+            onActionPress={() => router.push("/(tabs)/categories")} />
             <FlatList
                 data={recommendations}
                 renderItem={({ item }) => <RecommendationItem item={item} colors={colors} />}
                 keyExtractor={(item) => item._id}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                snapToInterval={ITEM_WIDTH + 16}
+                snapToInterval={CARD_SIZE + 12}
                 decelerationRate="fast"
                 contentContainerStyle={styles.listContent}
             />
@@ -133,8 +154,31 @@ const Recommendations = () => {
 
 const styles = StyleSheet.create({
     container: {
-        // marginTop: 8,
-        marginBottom:4
+        marginVertical: 5,
+        padding: 4,
+        backgroundColor: '#f6f2e9',
+    },
+    card: {
+        borderRadius: 1,
+        borderWidth: 0.3,
+        padding: 2,
+        marginRight: 6,
+        // borderTopWidth: 0.3,
+        borderColor: '#c32727',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 1,
+        justifyContent: 'space-between',
+    },
+    imageWrap: {
+        flex: 1,
+        // borderRadius: 4,
+        // alignItems: 'center',
+        // justifyContent: 'center',
+        overflow: 'hidden',
     },
     loadingContainer: {
         height: 150,
@@ -143,35 +187,32 @@ const styles = StyleSheet.create({
         marginTop:4
     },
     listContent: {
-        paddingHorizontal: 8,
-        gap: 4,
-    },
-    itemContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 12,
-        overflow: 'hidden',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        paddingHorizontal: 16,
     },
     image: {
         width: '100%',
         height: '100%',
     },
-    infoContainer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: 8,
+    title: {
+        fontSize: 11,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginTop: 8,
+        paddingVertical: 4,
+        lineHeight: 14,
     },
-    name: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
+    price: {
+        position: 'absolute',
+        bottom: 10,
+        backgroundColor: 'rgb(255, 255, 255)',
+        color: '#f54141',
+        borderRadius: 50,
+        paddingHorizontal: 6,
+        left: 10,        
+        fontSize: 11,
+        fontWeight: '600',
+        paddingVertical: 4,
+        lineHeight: 14,
     },
 });
 

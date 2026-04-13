@@ -49,7 +49,7 @@ export default function TabLayout() {
     <>
       <Tabs screenOptions={{
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.grayish,
+        tabBarInactiveTintColor: colors.dark,
         tabBarStyle: { backgroundColor: colors.background, height: 60, paddingBottom: 20 },
         headerShown: false,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
@@ -66,7 +66,7 @@ export default function TabLayout() {
           title: 'Categories',
           headerShown: true,
           header: () => <HomeHeader />,
-          tabBarIcon: ({ color, size }) => <Ionicons name='grid' size={size} color={color} />
+          tabBarIcon: ({ color, size }) => <Ionicons name='grid-outline' size={size} color={color} />
         }} />
 
         <Tabs.Screen name='chats' options={{
@@ -86,7 +86,7 @@ export default function TabLayout() {
 
         <Tabs.Screen name='shops' options={{
           title: 'Shops',
-          tabBarIcon: ({ color, size }) => <Entypo name='shop' size={size} color={color} />
+          tabBarIcon: ({ color, size }) => <Ionicons name='storefront-outline' size={size} color={color} />
         }} />
 
         <Tabs.Screen name='account' options={{
